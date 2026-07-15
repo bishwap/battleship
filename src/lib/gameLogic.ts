@@ -47,6 +47,36 @@ export function placeShip(
   }
 }
 
+export function cloneBoard(board: Board): Board {
+  return {
+    cells: board.cells.map((row) => row.map((c) => ({ ...c }))),
+    ships: board.ships.map((s) => ({ ...s })),
+  };
+}
+
+export function removeShip(board: Board, shipId: string): Board {
+  const newBoard = cloneBoard(board);
+  newBoard.cells = newBoard.cells.map((row) =>
+    row.map((c) => (c.shipId === shipId ? { state: 'empty' as const } : c))
+  );
+  newBoard.ships = newBoard.ships.filter((s) => s.id !== shipId);
+  return newBoard;
+}
+
+export function placeShipOnBoard(
+  board: Board,
+  ship: ShipType,
+  x: number,
+  y: number,
+  orientation: 'horizontal' | 'vertical'
+): Board {
+  let newBoard = removeShip(board, ship.id);
+  newBoard = cloneBoard(newBoard);
+  placeShip(newBoard.cells, ship, x, y, orientation);
+  newBoard.ships.push({ id: ship.id, name: ship.name, length: ship.length, hits: 0, sunk: false });
+  return newBoard;
+}
+
 export function placeShips(ships: ShipType[] = SHIPS): Board {
   let attempts = 0;
   while (attempts < 1000) {

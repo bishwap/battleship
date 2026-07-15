@@ -11,4 +11,9 @@ export const SHIPS: ShipType[] = [
 ];
 
 export const AI_COMMANDER = 'Admiral Intelligence (AI)';
-export const PLAYER_COMMANDER = 'Admiral';
+export const DEFAULT_PLAYER_COMMANDER = 'Admiral';
+export let PLAYER_COMMANDER = DEFAULT_PLAYER_COMMANDER;
+
+export function setPlayerCommander(name: string) {
+  PLAYER_COMMANDER = name;
+}

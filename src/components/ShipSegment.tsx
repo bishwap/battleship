@@ -1,25 +1,35 @@
+import { Ship } from './Ship';
+
 type ShipSegmentProps = {
+  shipId?: string;
+  length?: number;
+  segment?: number;
+  orientation?: 'horizontal' | 'vertical';
   state?: 'intact' | 'hit' | 'sunk';
 };
 
-export function ShipSegment({ state = 'intact' }: ShipSegmentProps) {
-  const palette = {
-    intact: { body: '#22c55e', glow: '#86efac', dark: '#14532d' },
-    hit: { body: '#ef4444', glow: '#fca5a5', dark: '#7f1d1d' },
-    sunk: { body: '#7f1d1d', glow: '#f87171', dark: '#450a0a' },
-  }[state];
+export function ShipSegment({
+  shipId,
+  length = 1,
+  segment = 0,
+  orientation = 'horizontal',
+  state = 'intact',
+}: ShipSegmentProps) {
+  const segmentCount = Math.max(1, length);
+  const index = Math.min(segment, segmentCount - 1);
+  const part = 100 / segmentCount;
+  const viewBox =
+    orientation === 'horizontal'
+      ? `${part * index} 0 ${part} 100`
+      : `0 ${part * index} 100 ${part}`;
 
   return (
-    <svg
-      viewBox="0 0 16 16"
-      className="pointer-events-none w-full h-full p-1 pixel-art"
-      aria-hidden="true"
-    >
-      <rect x="0" y="6" width="16" height="8" rx="1" fill={palette.body} stroke={palette.glow} strokeWidth="1" />
-      <rect x="2" y="2" width="4" height="5" fill={palette.body} stroke={palette.glow} strokeWidth="1" />
-      <rect x="5" y="0" width="3" height="2" fill={palette.dark} />
-      <rect x="3" y="7" width="3" height="2" fill={palette.dark} />
-      <rect x="10" y="7" width="3" height="2" fill={palette.dark} />
-    </svg>
+    <Ship
+      id={shipId}
+      orientation={orientation}
+      state={state}
+      viewBox={viewBox}
+      className="pointer-events-none w-full h-full p-0.5 pixel-art"
+    />
   );
 }

@@ -1,51 +1,80 @@
 import { useEffect, useState } from 'react';
 import type { CellState } from '../lib/types';
 import { ShipSegment } from './ShipSegment';
-import { WaterIcon, SplashIcon, ExplosionIcon, FireBurst } from './CellIcon';
+import {
+  CannonballIcon,
+  WaterIcon,
+  MissIcon,
+  WoodHitIcon,
+  PlayerSkullIcon,
+  EnemyTrophyIcon,
+} from './CellIcon';
 
 type CellProps = {
   state: CellState;
   isPlayerBoard: boolean;
   isLastShot: boolean;
   onClick: () => void;
+  onDrop?: (e: React.DragEvent<HTMLButtonElement>) => void;
   disabled: boolean;
   label: string;
+  style?: React.CSSProperties;
+  shipId?: string;
+  segment?: number;
+  orientation?: 'horizontal' | 'vertical';
+  length?: number;
 };
 
-function cellContent(state: CellState, isPlayerBoard: boolean) {
+function cellContent(
+  state: CellState,
+  isPlayerBoard: boolean,
+  firing: boolean,
+  shipId?: string,
+  segment?: number,
+  orientation?: 'horizontal' | 'vertical',
+  length?: number
+) {
+  if (firing && state !== 'ship' && state !== 'empty') {
+    return null;
+  }
+
   switch (state) {
     case 'miss':
-      return (
-        <SplashIcon className="pointer-events-none w-3/4 h-3/4 text-radar-glow animate-splash" />
-      );
+      return <MissIcon className="pointer-events-none w-3/4 h-3/4 text-radar-glow" />;
     case 'hit':
       if (isPlayerBoard) {
         return (
           <span className="pointer-events-none block w-full h-full relative">
-            <ShipSegment state="hit" />
-            <span className="absolute inset-0 flex items-center justify-center text-white text-[10px] sm:text-xs font-bold drop-shadow animate-explode">
-              ✕
+            <ShipSegment
+              shipId={shipId}
+              length={length}
+              segment={segment}
+              orientation={orientation}
+              state="hit"
+            />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <WoodHitIcon className="w-3/4 h-3/4 animate-explode" />
             </span>
           </span>
         );
       }
-      return (
-        <span className="pointer-events-none relative flex items-center justify-center w-full h-full">
-          <ExplosionIcon className="w-3/4 h-3/4 text-hit-glow animate-explode" />
-          <span className="absolute text-white text-[10px] sm:text-xs font-bold drop-shadow">✕</span>
-        </span>
-      );
+      return <WoodHitIcon className="pointer-events-none w-3/4 h-3/4 animate-explode" />;
     case 'sunk':
-      return (
-        <span className="pointer-events-none block w-full h-full animate-sink">
-          <ShipSegment state="sunk" />
-        </span>
-      );
+      if (isPlayerBoard) {
+        return <PlayerSkullIcon className="pointer-events-none w-3/5 h-3/5 text-sunk-glow drop-shadow animate-sink" />;
+      }
+      return <EnemyTrophyIcon className="pointer-events-none w-3/5 h-3/5 text-ship-glow drop-shadow animate-sink" />;
     case 'ship':
       if (isPlayerBoard) {
         return (
           <span className="pointer-events-none block w-full h-full">
-            <ShipSegment state="intact" />
+            <ShipSegment
+              shipId={shipId}
+              length={length}
+              segment={segment}
+              orientation={orientation}
+              state="intact"
+            />
           </span>
         );
       }
@@ -55,7 +84,7 @@ function cellContent(state: CellState, isPlayerBoard: boolean) {
   }
 }
 
-function cellClasses(state: CellState, disabled: boolean) {
+function cellClasses(state: CellState, isPlayerBoard: boolean, disabled: boolean) {
   const base =
     'board-cell relative overflow-hidden w-full flex items-center justify-center rounded border border-grid/60 transition-colors duration-200';
   const cursor = disabled ? ' cursor-default' : ' cursor-pointer hover:border-radar hover:brightness-110';
@@ -68,13 +97,26 @@ function cellClasses(state: CellState, disabled: boolean) {
     case 'sunk':
       return `${base} bg-sunk text-sunk-glow${cursor}`;
     case 'ship':
-      return `${base} bg-ship/10${cursor}`;
+      return `${base} ${isPlayerBoard ? 'bg-ship/10' : 'bg-ocean'}${cursor}`;
     default:
       return `${base} bg-ocean${cursor}`;
   }
 }
 
-export function Cell({ state, isPlayerBoard, isLastShot, onClick, disabled, label }: CellProps) {
+export function Cell({
+  state,
+  isPlayerBoard,
+  isLastShot,
+  onClick,
+  onDrop,
+  disabled,
+  label,
+  style,
+  shipId,
+  segment,
+  orientation,
+  length,
+}: CellProps) {
   const [firing, setFiring] = useState(false);
 
   useEffect(() => {
@@ -92,12 +134,17 @@ export function Cell({ state, isPlayerBoard, isLastShot, onClick, disabled, labe
       aria-label={label}
       disabled={disabled || firing}
       onClick={onClick}
-      className={cellClasses(state, disabled)}
+      onDrop={onDrop}
+      onDragOver={(e) => {
+        if (onDrop) e.preventDefault();
+      }}
+      className={cellClasses(state, isPlayerBoard, disabled)}
+      style={style}
     >
-      {cellContent(state, isPlayerBoard)}
+      {cellContent(state, isPlayerBoard, firing, shipId, segment, orientation, length)}
       {firing && (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
-          <FireBurst className="w-5/6 h-5/6 animate-fire" />
+          <CannonballIcon className="w-3/5 h-3/5 animate-drop" />
         </span>
       )}
     </button>

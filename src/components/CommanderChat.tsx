@@ -23,21 +23,24 @@ export function CommanderChat({ messages }: CommanderChatProps) {
     }
   }, [messages]);
 
+  const visibleMessages = messages.slice(-2);
+  const latestId = messages[messages.length - 1]?.id;
+
   return (
-    <div className={`flex flex-col h-full bg-ocean-light/50 border border-grid rounded-lg p-3 ${shake ? 'animate-shake' : ''}`}>
-      <h3 className="text-accent text-sm font-bold tracking-wider mb-2 uppercase">Command Channel</h3>
-      <div className="flex-1 overflow-y-auto scrollbar-thin space-y-3 min-h-[200px] max-h-[320px]">
-        {messages.map((msg) => {
+    <div className={`flex flex-col flex-1 bg-ocean-light/50 border border-grid rounded-lg p-4 max-h-[320px] ${shake ? 'animate-shake' : ''}`}>
+      <h3 className="text-accent text-base font-bold tracking-wider mb-2 uppercase">Command Channel</h3>
+      <div className="flex-1 overflow-y-auto scrollbar-thin space-y-3 max-h-full">
+        {visibleMessages.map((msg) => {
           const isPlayer = msg.speaker === 'player';
           const isSystem = msg.speaker === 'system';
           return (
             <div
               key={msg.id}
-              className={`flex gap-3 items-start ${isSystem ? 'justify-center' : isPlayer ? 'flex-row' : 'flex-row-reverse'}`}
+              className={`flex gap-4 items-start ${isSystem ? 'justify-center' : isPlayer ? 'flex-row' : 'flex-row-reverse'}`}
             >
-              {!isSystem && <CommanderAvatar side={isPlayer ? 'player' : 'ai'} size={64} />}
+              {!isSystem && <CommanderAvatar side={isPlayer ? 'player' : 'ai'} size={80} isTalking={msg.id === latestId} />}
               <div
-                className={`max-w-[80%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
+                className={`max-w-[80%] px-4 py-2 rounded-lg text-base leading-relaxed ${
                   isSystem
                     ? 'bg-sunk/30 text-sunk-glow text-center font-bold'
                     : isPlayer

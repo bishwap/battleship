@@ -44,7 +44,13 @@ export type ChatMessage = {
   type: 'intro' | 'miss' | 'hit' | 'sunk' | 'win' | 'lose' | 'start';
 };
 
+export type SinkingShip = {
+  side: 'player' | 'ai';
+  shipId: string;
+};
+
 export type GameState = {
+  phase: 'setup' | 'playing';
   playerBoard: Board;
   enemyBoard: Board;
   turn: 'player' | 'ai';
@@ -55,4 +61,7 @@ export type GameState = {
   status: string;
   shakeSide: 'player' | 'ai' | null;
   lastShot: { x: number; y: number; side: 'player' | 'ai' } | null;
+  sinkingShip: SinkingShip | null;
+  admiralName: string;
+  tally: { wins: number; losses: number };
 };

@@ -1,19 +1,20 @@
-import { AI_COMMANDER, PLAYER_COMMANDER } from '../lib/constants';
+import { AI_COMMANDER } from '../lib/constants';
 
 type StatusPanelProps = {
   status: string;
   turn: 'player' | 'ai';
   gameOver: boolean;
   winner: 'player' | 'ai' | null;
+  playerName: string;
 };
 
-export function StatusPanel({ status, turn, gameOver, winner }: StatusPanelProps) {
+export function StatusPanel({ status, turn, gameOver, winner, playerName }: StatusPanelProps) {
   const title = gameOver
     ? winner === 'player'
       ? 'Victory'
       : 'Defeat'
     : turn === 'player'
-      ? `${PLAYER_COMMANDER}'s Turn`
+      ? `${playerName}'s Turn`
       : `${AI_COMMANDER} is Firing`;
 
   const color = gameOver
@@ -27,7 +28,7 @@ export function StatusPanel({ status, turn, gameOver, winner }: StatusPanelProps
   return (
     <div className="text-center py-4">
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-accent mb-1">
-        Battleship vs AI
+        Battleshipz
       </h1>
       <div className={`text-sm sm:text-base font-bold ${color} ${turn === 'ai' && !gameOver ? 'animate-pulse' : ''}`}>
         {title}

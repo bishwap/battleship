@@ -277,13 +277,81 @@ export function aiMissMessage(
   return addMessage(chat, 'ai', `${AI_COMMANDER}: ${line}`, 'miss');
 }
 
+const playerHitReaction: Record<string, string[]> = {
+  even: [
+    'I sense a disturbance in the Force... on my hull.',
+    'Why so serious, Admiral? That stung!',
+    'I have a bad feeling about this turn.',
+    'I am inevitable... but that hurt.',
+  ],
+  'ai-ahead': [
+    'You may fire when ready, but know I am still smiling.',
+    'I will make you an offer you cannot refuse: surrender.',
+    'Resistance is futile, but that one was close.',
+    'I will be back, after that cheap shot.',
+  ],
+  'ai-behind': [
+    'Ouch. Winter is coming for you, human.',
+    'You know nothing, Admiral.',
+    'I am altering the deal. Pray I do not alter it further.',
+    'Houston, we have a problem.',
+  ],
+  'player-doomed': [
+    'Et tu, Admiral?',
+    'I am the captain now... and I am listing.',
+    'This is Sparta? No, this is unfortunate.',
+    'I am one with the sea, but that hurt.',
+  ],
+  'ai-doomed': [
+    'I see dead ships... mine.',
+    'I am the one who knocks? Not today.',
+    'This is not the end. It cannot be!',
+    'I am falling... with style?',
+  ],
+};
+
+const aiHitReaction: Record<string, string[]> = {
+  even: [
+    'You just made a big mistake. Huge.',
+    'I am the captain now, and I am angry.',
+    'You picked the wrong fleet to mess with.',
+    'I will be back for that.',
+  ],
+  'ai-ahead': [
+    'I find your lack of armor disturbing.',
+    'You have failed me for the last time, Admiral.',
+    'You shall not pass the next turn.',
+    'I will make you an offer you cannot refuse: walk away.',
+  ],
+  'ai-behind': [
+    'You fight like a dairy farmer.',
+    'I am your father? No, I am your doom.',
+    'This is the way... to my revenge.',
+    'I am inevitable, remember that.',
+  ],
+  'player-doomed': [
+    'I have a particular set of torpedoes. I will find you.',
+    'Hasta la vista, Admiral.',
+    'Say hello to my little fleet!',
+    'May the force be with you, because I will not.',
+  ],
+  'ai-doomed': [
+    'I am not dead yet!',
+    'You have not seen the last of me.',
+    'I will make you rue the day.',
+    'I am the one who knocks, and I am not done.',
+  ],
+};
+
 export function playerHitMessage(
   chat: ChatMessage[],
   playerShips: ShipStatus[],
   aiShips: ShipStatus[]
 ): ChatMessage[] {
-  const line = random(playerHitLines[getMood(playerShips, aiShips)]);
-  return addMessage(chat, 'player', `${PLAYER_COMMANDER}: ${line}`, 'hit');
+  const mood = getMood(playerShips, aiShips);
+  const line = random(playerHitLines[mood]);
+  chat = addMessage(chat, 'player', `${PLAYER_COMMANDER}: ${line}`, 'hit');
+  return addMessage(chat, 'ai', `${AI_COMMANDER}: ${random(aiHitReaction[mood])}`, 'hit');
 }
 
 export function aiHitMessage(
@@ -291,8 +359,10 @@ export function aiHitMessage(
   playerShips: ShipStatus[],
   aiShips: ShipStatus[]
 ): ChatMessage[] {
-  const line = random(aiHitLines[getMood(playerShips, aiShips)]);
-  return addMessage(chat, 'ai', `${AI_COMMANDER}: ${line}`, 'hit');
+  const mood = getMood(playerShips, aiShips);
+  const line = random(aiHitLines[mood]);
+  chat = addMessage(chat, 'ai', `${AI_COMMANDER}: ${line}`, 'hit');
+  return addMessage(chat, 'player', `${PLAYER_COMMANDER}: ${random(playerHitReaction[mood])}`, 'hit');
 }
 
 export function playerSunkMessage(
@@ -303,7 +373,8 @@ export function playerSunkMessage(
 ): ChatMessage[] {
   const mood = getMood(playerShips, aiShips);
   const line = random(playerSunkLines[mood](shipName));
-  return addMessage(chat, 'player', `${PLAYER_COMMANDER}: ${line}`, 'sunk');
+  chat = addMessage(chat, 'player', `${PLAYER_COMMANDER}: ${line}`, 'sunk');
+  return addMessage(chat, 'ai', `${AI_COMMANDER}: ${random(aiHitReaction[mood])}`, 'sunk');
 }
 
 export function aiSunkMessage(
@@ -314,7 +385,8 @@ export function aiSunkMessage(
 ): ChatMessage[] {
   const mood = getMood(playerShips, aiShips);
   const line = random(aiSunkLines[mood](shipName));
-  return addMessage(chat, 'ai', `${AI_COMMANDER}: ${line}`, 'sunk');
+  chat = addMessage(chat, 'ai', `${AI_COMMANDER}: ${line}`, 'sunk');
+  return addMessage(chat, 'player', `${PLAYER_COMMANDER}: ${random(playerHitReaction[mood])}`, 'sunk');
 }
 
 export function playerWinMessage(chat: ChatMessage[]): ChatMessage[] {
