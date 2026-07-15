@@ -28,6 +28,7 @@ function createInitialGame(): GameState {
     aiMemory: createAiMemory(),
     status: `${PLAYER_COMMANDER}'s turn — fire at the enemy fleet.`,
     shakeSide: null,
+    lastShot: null,
   };
 }
 
@@ -45,7 +46,9 @@ export function useGame() {
       const { board: newEnemyBoard, result } = fireAt(prev.enemyBoard, x, y);
       if (result.type === 'miss' && prev.enemyBoard.cells[y][x].state !== 'miss') {
         // Miss
-        let chat = playerMissMessage(prev.chat);
+        const playerShips = prev.playerBoard.ships;
+        const aiShips = newEnemyBoard.ships;
+        let chat = playerMissMessage(prev.chat, playerShips, aiShips);
         const status = `${AI_COMMANDER} is targeting your fleet...`;
         return {
           ...prev,
@@ -54,13 +57,16 @@ export function useGame() {
           chat,
           status,
           shakeSide: null,
+          lastShot: { x, y, side: 'player' as const },
         };
       }
 
       if (result.type === 'hit') {
-        let chat = playerHitMessage(prev.chat);
-        if (allShipsSunk(newEnemyBoard.ships)) {
-          chat = playerSunkMessage(chat, result.shipName ?? 'ship');
+        const playerShips = prev.playerBoard.ships;
+        const aiShips = newEnemyBoard.ships;
+        let chat = playerHitMessage(prev.chat, playerShips, aiShips);
+        if (allShipsSunk(aiShips)) {
+          chat = playerSunkMessage(chat, playerShips, aiShips, result.shipName ?? 'ship');
           chat = playerWinMessage(chat);
           return {
             ...prev,
@@ -69,6 +75,7 @@ export function useGame() {
             winner: 'player' as const,
             chat,
             status: 'Victory! All enemy ships destroyed.',
+            lastShot: { x, y, side: 'player' as const },
           };
         }
         return {
@@ -77,12 +84,15 @@ export function useGame() {
           chat,
           status: `Hit! Fire again, ${PLAYER_COMMANDER}.`,
           shakeSide: 'ai' as const,
+          lastShot: { x, y, side: 'player' as const },
         };
       }
 
       if (result.type === 'sunk') {
-        let chat = playerSunkMessage(prev.chat, result.shipName ?? 'ship');
-        if (allShipsSunk(newEnemyBoard.ships)) {
+        const playerShips = prev.playerBoard.ships;
+        const aiShips = newEnemyBoard.ships;
+        let chat = playerSunkMessage(prev.chat, playerShips, aiShips, result.shipName ?? 'ship');
+        if (allShipsSunk(aiShips)) {
           chat = playerWinMessage(chat);
           return {
             ...prev,
@@ -91,6 +101,7 @@ export function useGame() {
             winner: 'player' as const,
             chat,
             status: 'Victory! All enemy ships destroyed.',
+            lastShot: { x, y, side: 'player' as const },
           };
         }
         return {
@@ -99,6 +110,7 @@ export function useGame() {
           chat,
           status: `Sunk! ${result.shipName} destroyed. Fire again.`,
           shakeSide: 'ai' as const,
+          lastShot: { x, y, side: 'player' as const },
         };
       }
 
@@ -116,7 +128,9 @@ export function useGame() {
         const newAiMemory = updateAiMemory(memoryAfterChoose, shot, result);
 
         if (result.type === 'miss') {
-          const chat = aiMissMessage(prev.chat);
+          const playerShips = newPlayerBoard.ships;
+          const aiShips = prev.enemyBoard.ships;
+          const chat = aiMissMessage(prev.chat, playerShips, aiShips);
           return {
             ...prev,
             playerBoard: newPlayerBoard,
@@ -125,13 +139,16 @@ export function useGame() {
             chat,
             status: `${PLAYER_COMMANDER}'s turn — fire at the enemy fleet.`,
             shakeSide: null,
+            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
           };
         }
 
         if (result.type === 'hit') {
-          let chat = aiHitMessage(prev.chat);
-          if (allShipsSunk(newPlayerBoard.ships)) {
-            chat = aiSunkMessage(chat, result.shipName ?? 'ship');
+          const playerShips = newPlayerBoard.ships;
+          const aiShips = prev.enemyBoard.ships;
+          let chat = aiHitMessage(prev.chat, playerShips, aiShips);
+          if (allShipsSunk(playerShips)) {
+            chat = aiSunkMessage(chat, playerShips, aiShips, result.shipName ?? 'ship');
             chat = aiWinMessage(chat);
             return {
               ...prev,
@@ -141,6 +158,7 @@ export function useGame() {
               winner: 'ai' as const,
               chat,
               status: 'Defeat. Your fleet has been destroyed.',
+              lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
             };
           }
           return {
@@ -150,12 +168,15 @@ export function useGame() {
             chat,
             status: `${AI_COMMANDER} hit your ship. Re-engaging...`,
             shakeSide: 'player' as const,
+            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
           };
         }
 
         if (result.type === 'sunk') {
-          let chat = aiSunkMessage(prev.chat, result.shipName ?? 'ship');
-          if (allShipsSunk(newPlayerBoard.ships)) {
+          const playerShips = newPlayerBoard.ships;
+          const aiShips = prev.enemyBoard.ships;
+          let chat = aiSunkMessage(prev.chat, playerShips, aiShips, result.shipName ?? 'ship');
+          if (allShipsSunk(playerShips)) {
             chat = aiWinMessage(chat);
             return {
               ...prev,
@@ -165,6 +186,7 @@ export function useGame() {
               winner: 'ai' as const,
               chat,
               status: 'Defeat. Your fleet has been destroyed.',
+              lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
             };
           }
           return {
@@ -174,6 +196,7 @@ export function useGame() {
             chat,
             status: `${AI_COMMANDER} sunk your ${result.shipName}. Retaliating...`,
             shakeSide: 'player' as const,
+            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
           };
         }
 
@@ -189,6 +212,12 @@ export function useGame() {
     const timer = setTimeout(() => setGame((prev) => ({ ...prev, shakeSide: null })), 500);
     return () => clearTimeout(timer);
   }, [game.shakeSide]);
+
+  useEffect(() => {
+    if (!game.lastShot) return;
+    const timer = setTimeout(() => setGame((prev) => ({ ...prev, lastShot: null })), 900);
+    return () => clearTimeout(timer);
+  }, [game.lastShot]);
 
   return {
     game,

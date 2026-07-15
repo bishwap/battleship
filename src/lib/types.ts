@@ -54,4 +54,5 @@ export type GameState = {
   aiMemory: AiMemory;
   status: string;
   shakeSide: 'player' | 'ai' | null;
+  lastShot: { x: number; y: number; side: 'player' | 'ai' } | null;
 };
