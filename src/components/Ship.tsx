@@ -1,5 +1,6 @@
 type ShipProps = {
   id?: string;
+  length?: number;
   orientation?: 'horizontal' | 'vertical';
   state?: 'intact' | 'hit' | 'sunk';
   className?: string;
@@ -14,6 +15,14 @@ const palette = {
   intact: { body: '#22c55e', glow: '#86efac', dark: '#14532d' },
   hit: { body: '#f97316', glow: '#fdba74', dark: '#7c2d12' },
   sunk: { body: '#7f1d1d', glow: '#f87171', dark: '#450a0a' },
+};
+
+const shipLengths: Record<string, number> = {
+  carrier: 5,
+  battleship: 4,
+  cruiser: 3,
+  submarine: 3,
+  destroyer: 2,
 };
 
 function swapPart(part: ShipPart, orientation: 'horizontal' | 'vertical'): ShipPart {
@@ -32,70 +41,76 @@ function swapPart(part: ShipPart, orientation: 'horizontal' | 'vertical'): ShipP
   return { ...part, cx: part.cy, cy: part.cx };
 }
 
-function getShipParts(id: string | undefined): ShipPart[] {
-  const hull: ShipPart = {
-    kind: 'rect',
-    x: 0,
-    y: 45,
-    w: 100,
-    h: 25,
-    rx: 8,
-    ry: 8,
-    fill: 'body',
-  };
+function getShipParts(id: string | undefined, shipWidth: number): ShipPart[] {
+  const w = shipWidth;
+  const hull: ShipPart = { kind: 'rect', x: 0, y: 45, w, h: 25, rx: 12, ry: 12, fill: 'body' };
 
   switch (id) {
     case 'carrier':
       return [
         hull,
-        { kind: 'rect', x: 10, y: 25, w: 80, h: 20, rx: 4, ry: 4, fill: 'body' },
-        { kind: 'rect', x: 20, y: 30, w: 60, h: 8, rx: 2, ry: 2, fill: 'dark' },
-        { kind: 'rect', x: 55, y: 5, w: 20, h: 22, rx: 3, ry: 3, fill: 'body' },
-        { kind: 'circle', cx: 25, cy: 20, r: 5, fill: 'dark' },
-        { kind: 'circle', cx: 82, cy: 20, r: 5, fill: 'dark' },
+        { kind: 'rect', x: w * 0.05, y: 40, w: w * 0.9, h: 5, rx: 2, ry: 2, fill: 'body' },
+        { kind: 'rect', x: w * 0.55, y: 12, w: w * 0.12, h: 35, rx: 3, ry: 3, fill: 'body' },
+        { kind: 'rect', x: w * 0.1, y: 55, w: w * 0.8, h: 8, rx: 2, ry: 2, fill: 'dark' },
+        { kind: 'circle', cx: w * 0.25, cy: 20, r: Math.max(12, w * 0.02), fill: 'dark' },
+        { kind: 'circle', cx: w * 0.75, cy: 20, r: Math.max(12, w * 0.02), fill: 'dark' },
       ];
     case 'submarine':
       return [
-        { kind: 'rect', x: 0, y: 42, w: 100, h: 28, rx: 14, ry: 14, fill: 'body' },
-        { kind: 'rect', x: 35, y: 10, w: 30, h: 25, rx: 4, ry: 4, fill: 'body' },
-        { kind: 'rect', x: 45, y: 0, w: 10, h: 12, rx: 2, ry: 2, fill: 'dark' },
-        { kind: 'rect', x: 40, y: 50, w: 20, h: 5, rx: 1, ry: 1, fill: 'dark' },
+        { kind: 'rect', x: 0, y: 42, w, h: 28, rx: 14, ry: 14, fill: 'body' },
+        { kind: 'rect', x: w * 0.35, y: 10, w: w * 0.3, h: 35, rx: 4, ry: 4, fill: 'body' },
+        { kind: 'rect', x: w * 0.48, y: 0, w: w * 0.04, h: 12, rx: 2, ry: 2, fill: 'dark' },
+        { kind: 'rect', x: w * 0.1, y: 50, w: w * 0.8, h: 5, rx: 1, ry: 1, fill: 'dark' },
       ];
     case 'destroyer':
       return [
         hull,
-        { kind: 'rect', x: 20, y: 25, w: 60, h: 20, rx: 4, ry: 4, fill: 'body' },
-        { kind: 'rect', x: 68, y: 8, w: 18, h: 22, rx: 3, ry: 3, fill: 'body' },
-        { kind: 'circle', cx: 30, cy: 20, r: 5, fill: 'dark' },
+        { kind: 'rect', x: w * 0.35, y: 25, w: w * 0.25, h: 15, rx: 3, ry: 3, fill: 'body' },
+        { kind: 'rect', x: w * 0.7, y: 20, w: w * 0.15, h: 15, rx: 2, ry: 2, fill: 'body' },
+        { kind: 'circle', cx: w * 0.5, cy: 20, r: Math.max(12, w * 0.02), fill: 'dark' },
       ];
     case 'cruiser':
       return [
         hull,
-        { kind: 'rect', x: 15, y: 25, w: 70, h: 20, rx: 4, ry: 4, fill: 'body' },
-        { kind: 'rect', x: 60, y: 8, w: 18, h: 22, rx: 3, ry: 3, fill: 'body' },
-        { kind: 'circle', cx: 30, cy: 20, r: 5, fill: 'dark' },
+        { kind: 'rect', x: w * 0.2, y: 25, w: w * 0.12, h: 15, rx: 2, ry: 2, fill: 'body' },
+        { kind: 'rect', x: w * 0.68, y: 25, w: w * 0.12, h: 15, rx: 2, ry: 2, fill: 'body' },
+        { kind: 'rect', x: w * 0.44, y: 15, w: w * 0.08, h: 25, rx: 2, ry: 2, fill: 'dark' },
+        { kind: 'circle', cx: w * 0.45, cy: 20, r: Math.max(12, w * 0.02), fill: 'dark' },
       ];
     case 'battleship':
     default:
       return [
         hull,
-        { kind: 'rect', x: 15, y: 25, w: 70, h: 20, rx: 4, ry: 4, fill: 'body' },
-        { kind: 'rect', x: 55, y: 5, w: 20, h: 22, rx: 3, ry: 3, fill: 'body' },
-        { kind: 'circle', cx: 25, cy: 20, r: 5, fill: 'dark' },
-        { kind: 'circle', cx: 78, cy: 20, r: 5, fill: 'dark' },
+        { kind: 'rect', x: w * 0.12, y: 25, w: w * 0.12, h: 15, rx: 2, ry: 2, fill: 'body' },
+        { kind: 'rect', x: w * 0.76, y: 25, w: w * 0.12, h: 15, rx: 2, ry: 2, fill: 'body' },
+        { kind: 'rect', x: w * 0.44, y: 8, w: w * 0.08, h: 35, rx: 2, ry: 2, fill: 'dark' },
+        { kind: 'circle', cx: w * 0.25, cy: 20, r: Math.max(12, w * 0.02), fill: 'dark' },
+        { kind: 'circle', cx: w * 0.75, cy: 20, r: Math.max(12, w * 0.02), fill: 'dark' },
       ];
   }
 }
 
-export function Ship({ id, orientation = 'horizontal', state = 'intact', className, viewBox = '0 0 100 100' }: ShipProps) {
+export function Ship({
+  id,
+  length,
+  orientation = 'horizontal',
+  state = 'intact',
+  className,
+  viewBox,
+}: ShipProps) {
   const colors = palette[state];
-  const parts = getShipParts(id).map((p) => swapPart(p, orientation));
+  const shipLength = length ?? shipLengths[id || 'battleship'] ?? 1;
+  const shipWidth = shipLength * 100;
+  const computedViewBox =
+    orientation === 'horizontal' ? `0 0 ${shipWidth} 100` : `0 0 100 ${shipWidth}`;
+
+  const parts = getShipParts(id, shipWidth).map((p) => swapPart(p, orientation));
 
   return (
     <svg
-      viewBox={viewBox}
+      viewBox={viewBox ?? computedViewBox}
       className={className}
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       style={{ display: 'block' }}
     >
@@ -130,9 +145,9 @@ export function Ship({ id, orientation = 'horizontal', state = 'intact', classNa
       })}
       {state === 'sunk' && (
         <g opacity={0.6}>
-          <circle cx={30} cy={35} r={4} fill={colors.glow} />
-          <circle cx={70} cy={55} r={5} fill={colors.glow} />
-          <circle cx={50} cy={70} r={3} fill={colors.glow} />
+          <circle cx={shipWidth * 0.25} cy={35} r={Math.max(3, shipWidth * 0.015)} fill={colors.glow} />
+          <circle cx={shipWidth * 0.75} cy={55} r={Math.max(4, shipWidth * 0.02)} fill={colors.glow} />
+          <circle cx={shipWidth * 0.5} cy={70} r={Math.max(2, shipWidth * 0.01)} fill={colors.glow} />
         </g>
       )}
     </svg>

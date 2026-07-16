@@ -43,7 +43,7 @@ export function ShipTray({ ships, className = '' }: ShipTrayProps) {
                 className="cursor-move"
                 title={`Drag ${ship.name} to your board`}
               >
-                <Ship id={ship.id} orientation={orientation} state="intact" className="w-full h-full pixel-art" />
+                <Ship id={ship.id} length={ship.length} orientation={orientation} state="intact" className="w-full h-full pixel-art" />
               </div>
               <span className="text-muted text-xs">{ship.name}</span>
               <button

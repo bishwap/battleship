@@ -27,7 +27,7 @@ export function CommanderChat({ messages }: CommanderChatProps) {
   const latestId = messages[messages.length - 1]?.id;
 
   return (
-    <div className={`flex flex-col flex-1 bg-ocean-light/50 border border-grid rounded-lg p-4 max-h-[320px] ${shake ? 'animate-shake' : ''}`}>
+    <div className={`flex flex-col flex-1 bg-ocean-light/50 border border-grid rounded-lg p-4 max-h-[240px] sm:max-h-[320px] ${shake ? 'animate-shake' : ''}`}>
       <h3 className="text-accent text-base font-bold tracking-wider mb-2 uppercase">Command Channel</h3>
       <div className="flex-1 overflow-y-auto scrollbar-thin space-y-3 max-h-full">
         {visibleMessages.map((msg) => {

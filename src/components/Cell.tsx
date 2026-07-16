@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import type { CellState } from '../lib/types';
-import { ShipSegment } from './ShipSegment';
 import {
   CannonballIcon,
   WaterIcon,
@@ -19,21 +18,9 @@ type CellProps = {
   disabled: boolean;
   label: string;
   style?: React.CSSProperties;
-  shipId?: string;
-  segment?: number;
-  orientation?: 'horizontal' | 'vertical';
-  length?: number;
 };
 
-function cellContent(
-  state: CellState,
-  isPlayerBoard: boolean,
-  firing: boolean,
-  shipId?: string,
-  segment?: number,
-  orientation?: 'horizontal' | 'vertical',
-  length?: number
-) {
+function cellContent(state: CellState, isPlayerBoard: boolean, firing: boolean) {
   if (firing && state !== 'ship' && state !== 'empty') {
     return null;
   }
@@ -42,22 +29,6 @@ function cellContent(
     case 'miss':
       return <MissIcon className="pointer-events-none w-3/4 h-3/4 text-radar-glow" />;
     case 'hit':
-      if (isPlayerBoard) {
-        return (
-          <span className="pointer-events-none block w-full h-full relative">
-            <ShipSegment
-              shipId={shipId}
-              length={length}
-              segment={segment}
-              orientation={orientation}
-              state="hit"
-            />
-            <span className="absolute inset-0 flex items-center justify-center">
-              <WoodHitIcon className="w-3/4 h-3/4 animate-explode" />
-            </span>
-          </span>
-        );
-      }
       return <WoodHitIcon className="pointer-events-none w-3/4 h-3/4 animate-explode" />;
     case 'sunk':
       if (isPlayerBoard) {
@@ -66,17 +37,7 @@ function cellContent(
       return <EnemyTrophyIcon className="pointer-events-none w-3/5 h-3/5 text-ship-glow drop-shadow animate-sink" />;
     case 'ship':
       if (isPlayerBoard) {
-        return (
-          <span className="pointer-events-none block w-full h-full">
-            <ShipSegment
-              shipId={shipId}
-              length={length}
-              segment={segment}
-              orientation={orientation}
-              state="intact"
-            />
-          </span>
-        );
+        return null;
       }
       return <WaterIcon className="pointer-events-none w-full h-full p-0.5 sm:p-1 text-radar/40 animate-wave" />;
     default:
@@ -91,15 +52,15 @@ function cellClasses(state: CellState, isPlayerBoard: boolean, disabled: boolean
 
   switch (state) {
     case 'miss':
-      return `${base} bg-radar/15 text-radar-glow${cursor}`;
+      return `${base} z-20 bg-radar/15 text-radar-glow${cursor}`;
     case 'hit':
-      return `${base} bg-hit/20 text-hit-glow${cursor}`;
+      return `${base} z-20 bg-hit/20 text-hit-glow${cursor}`;
     case 'sunk':
-      return `${base} bg-sunk text-sunk-glow${cursor}`;
+      return `${base} z-20 bg-sunk text-sunk-glow${cursor}`;
     case 'ship':
-      return `${base} ${isPlayerBoard ? 'bg-ship/10' : 'bg-ocean'}${cursor}`;
+      return `${base} z-0 ${isPlayerBoard ? 'bg-ship/10' : 'bg-ocean'}${cursor}`;
     default:
-      return `${base} bg-ocean${cursor}`;
+      return `${base} z-0 bg-ocean${cursor}`;
   }
 }
 
@@ -112,10 +73,6 @@ export function Cell({
   disabled,
   label,
   style,
-  shipId,
-  segment,
-  orientation,
-  length,
 }: CellProps) {
   const [firing, setFiring] = useState(false);
 
@@ -141,7 +98,7 @@ export function Cell({
       className={cellClasses(state, isPlayerBoard, disabled)}
       style={style}
     >
-      {cellContent(state, isPlayerBoard, firing, shipId, segment, orientation, length)}
+      {cellContent(state, isPlayerBoard, firing)}
       {firing && (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
           <CannonballIcon className="w-3/5 h-3/5 animate-drop" />

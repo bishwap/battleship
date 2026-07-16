@@ -26,7 +26,7 @@ export function Board({
   title,
   sinkingShip,
 }: BoardProps) {
-  const shipMeta = (() => {
+  const shipData = (() => {
     const data = new Map<string, { orientation: 'horizontal' | 'vertical'; length: number; positions: { x: number; y: number }[] }>();
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
@@ -41,47 +41,69 @@ export function Board({
     }
     for (const [, meta] of data) {
       const xs = meta.positions.map((p) => p.x);
+      const ys = meta.positions.map((p) => p.y);
       meta.orientation = Math.max(...xs) > Math.min(...xs) ? 'horizontal' : 'vertical';
-    }
-    const segmentMap = new Map<string, { orientation: 'horizontal' | 'vertical'; length: number; map: Map<string, number> }>();
-    for (const [shipId, meta] of data) {
-      const key = meta.orientation === 'horizontal' ? 'x' : 'y';
-      const sorted = [...meta.positions].sort((a, b) => a[key] - b[key]);
-      const map = new Map<string, number>();
-      sorted.forEach((pos, idx) => map.set(`${pos.x},${pos.y}`, idx));
-      segmentMap.set(shipId, { orientation: meta.orientation, length: meta.length, map });
-    }
-    return segmentMap;
-  })();
-
-  const shipOverlay = (() => {
-    if (!isPlayerBoard || !sinkingShip) return null;
-    const positions: { x: number; y: number }[] = [];
-    for (let y = 0; y < BOARD_SIZE; y++) {
-      for (let x = 0; x < BOARD_SIZE; x++) {
-        if (board.cells[y][x].shipId === sinkingShip.shipId) {
-          positions.push({ x, y });
-        }
+      if (meta.orientation === 'vertical' && Math.max(...ys) === Math.min(...ys)) {
+        meta.orientation = 'horizontal';
       }
     }
-    if (positions.length === 0) return null;
+    return data;
+  })();
 
-    const minX = Math.min(...positions.map((p) => p.x));
-    const maxX = Math.max(...positions.map((p) => p.x));
-    const minY = Math.min(...positions.map((p) => p.y));
-    const maxY = Math.max(...positions.map((p) => p.y));
-    const orientation = maxX > minX ? 'horizontal' : 'vertical';
+  const shipOverlays = isPlayerBoard
+    ? Array.from(shipData.entries()).map(([shipId, meta]) => {
+        const ship = board.ships.find((s) => s.id === shipId);
+        if (!ship || ship.sunk) return null;
+        const minX = Math.min(...meta.positions.map((p) => p.x));
+        const maxX = Math.max(...meta.positions.map((p) => p.x));
+        const minY = Math.min(...meta.positions.map((p) => p.y));
+        const maxY = Math.max(...meta.positions.map((p) => p.y));
+        return (
+          <div
+            key={`ship-${shipId}`}
+            className="pointer-events-none z-10"
+            style={{
+              gridColumn: `${minX + 2} / ${maxX + 3}`,
+              gridRow: `${minY + 2} / ${maxY + 3}`,
+            }}
+          >
+            <Ship
+              id={shipId}
+              length={ship.length}
+              orientation={meta.orientation}
+              state={ship.hits > 0 ? 'hit' : 'intact'}
+              className="w-full h-full pixel-art"
+            />
+          </div>
+        );
+      })
+    : [];
 
+  const sinkingOverlay = (() => {
+    if (!isPlayerBoard || !sinkingShip) return null;
+    const meta = shipData.get(sinkingShip.shipId);
+    if (!meta) return null;
+    const minX = Math.min(...meta.positions.map((p) => p.x));
+    const maxX = Math.max(...meta.positions.map((p) => p.x));
+    const minY = Math.min(...meta.positions.map((p) => p.y));
+    const maxY = Math.max(...meta.positions.map((p) => p.y));
+    const ship = board.ships.find((s) => s.id === sinkingShip.shipId);
     return (
       <div
         key={`sink-${sinkingShip.shipId}`}
-        className="pointer-events-none z-20 animate-sink"
+        className="pointer-events-none z-30 animate-sink"
         style={{
           gridColumn: `${minX + 2} / ${maxX + 3}`,
           gridRow: `${minY + 2} / ${maxY + 3}`,
         }}
       >
-        <Ship id={sinkingShip.shipId} orientation={orientation} state="sunk" className="w-full h-full" />
+        <Ship
+          id={sinkingShip.shipId}
+          length={ship?.length}
+          orientation={meta.orientation}
+          state="sunk"
+          className="w-full h-full pixel-art"
+        />
       </div>
     );
   })();
@@ -121,43 +143,37 @@ export function Board({
           </div>
         ))}
         {board.cells.map((row, y) =>
-          row.map((cell, x) => {
-            const meta = cell.shipId ? shipMeta.get(cell.shipId) : null;
-            return (
-              <Cell
-                key={`cell-${x}-${y}`}
-                state={cell.state}
-                isPlayerBoard={isPlayerBoard}
-                isLastShot={lastShot?.x === x && lastShot?.y === y}
-                disabled={disabled || !onCellClick}
-                label={`${ROW_LABELS[y]}${x + 1} ${cell.state}`}
-                onClick={() => onCellClick && onCellClick(x, y)}
-                onDrop={
-                  onCellDrop
-                    ? (e) => {
-                        const data = e.dataTransfer.getData('text/plain');
-                        if (!data) return;
-                        try {
-                          const parsed = JSON.parse(data) as { shipId?: string; orientation?: 'horizontal' | 'vertical' };
-                          if (parsed.shipId && parsed.orientation) {
-                            onCellDrop(parsed.shipId, parsed.orientation, x, y);
-                          }
-                        } catch {
-                          // ignore bad drag data
+          row.map((cell, x) => (
+            <Cell
+              key={`cell-${x}-${y}`}
+              state={cell.state}
+              isPlayerBoard={isPlayerBoard}
+              isLastShot={lastShot?.x === x && lastShot?.y === y}
+              disabled={disabled || !onCellClick}
+              label={`${ROW_LABELS[y]}${x + 1} ${cell.state}`}
+              onClick={() => onCellClick && onCellClick(x, y)}
+              onDrop={
+                onCellDrop
+                  ? (e) => {
+                      const data = e.dataTransfer.getData('text/plain');
+                      if (!data) return;
+                      try {
+                        const parsed = JSON.parse(data) as { shipId?: string; orientation?: 'horizontal' | 'vertical' };
+                        if (parsed.shipId && parsed.orientation) {
+                          onCellDrop(parsed.shipId, parsed.orientation, x, y);
                         }
+                      } catch {
+                        // ignore bad drag data
                       }
-                    : undefined
-                }
-                style={{ gridColumn: `${x + 2} / ${x + 3}`, gridRow: `${y + 2} / ${y + 3}` }}
-                shipId={cell.shipId}
-                orientation={meta?.orientation}
-                segment={meta?.map.get(`${x},${y}`)}
-                length={meta?.length}
-              />
-            );
-          })
+                    }
+                  : undefined
+              }
+              style={{ gridColumn: `${x + 2} / ${x + 3}`, gridRow: `${y + 2} / ${y + 3}` }}
+            />
+          ))
         )}
-        {shipOverlay}
+        {shipOverlays}
+        {sinkingOverlay}
       </div>
     </div>
   );
