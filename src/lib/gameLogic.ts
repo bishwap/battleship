@@ -16,7 +16,8 @@ export function canPlaceShip(
   ship: ShipType,
   x: number,
   y: number,
-  orientation: 'horizontal' | 'vertical'
+  orientation: 'horizontal' | 'vertical',
+  ignoreShipId?: string
 ): boolean {
   for (let i = 0; i < ship.length; i++) {
     const cx = orientation === 'horizontal' ? x + i : x;
@@ -26,7 +27,8 @@ export function canPlaceShip(
       return false;
     }
 
-    if (cells[cy][cx].state !== 'empty') {
+    const cell = cells[cy][cx];
+    if (cell.state !== 'empty' && cell.shipId !== ignoreShipId) {
       return false;
     }
   }

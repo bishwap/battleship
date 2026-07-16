@@ -49,11 +49,21 @@ export function ShipTray({ ships, selectedShipId, onSelectShip, className = '' }
           return (
             <div key={ship.id} className="flex flex-col items-center gap-2">
               <div
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                aria-label={`Select ${ship.name}`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, ship)}
                 onClick={() => handleSelect(ship)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelect(ship);
+                  }
+                }}
                 style={{ width, height }}
-                className={`cursor-move ${isSelected ? 'ring-2 ring-radar rounded' : ''}`}
+                className={`cursor-move focus:outline-none focus-visible:ring-2 focus-visible:ring-radar rounded ${isSelected ? 'ring-2 ring-radar' : ''}`}
                 title={`Select ${ship.name} and tap your board to place`}
               >
                 <Ship id={ship.id} length={ship.length} orientation={orientation} state="intact" className="w-full h-full pixel-art" />

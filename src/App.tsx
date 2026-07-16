@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSettings } from './contexts/SettingsContext';
+import { useSettings } from './hooks/useSettings';
 import { useGame } from './hooks/useGame';
 import { SHIPS } from './lib/constants';
 import { canPlaceShip } from './lib/gameLogic';
@@ -36,12 +36,6 @@ function App() {
     const timer = setTimeout(() => setShowIntro(false), 2500);
     return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    if (game.phase === 'playing' && game.turn === 'player' && !game.gameOver) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [game.phase, game.turn, game.gameOver]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -160,6 +154,7 @@ function App() {
                 onStartBattle={handleStartBattle}
                 onUndo={handleUndo}
                 canUndo={game.placementHistory.length > 0}
+                canStartBattle={game.playerBoard.ships.length === SHIPS.length}
               />
             </div>
           )}

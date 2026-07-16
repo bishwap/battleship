@@ -5,9 +5,10 @@ type SetupControlsProps = {
   onStartBattle: () => void;
   onUndo?: () => void;
   canUndo?: boolean;
+  canStartBattle?: boolean;
 };
 
-export function SetupControls({ onRandomize, onStartBattle, onUndo, canUndo }: SetupControlsProps) {
+export function SetupControls({ onRandomize, onStartBattle, onUndo, canUndo, canStartBattle = false }: SetupControlsProps) {
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -45,7 +46,8 @@ export function SetupControls({ onRandomize, onStartBattle, onUndo, canUndo }: S
               setConfirming(false);
               onStartBattle();
             }}
-            className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg border border-ship/50 bg-ship/10 text-ship-glow hover:bg-ship/20 transition-colors"
+            disabled={!canStartBattle}
+            className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg border border-ship/50 bg-ship/10 text-ship-glow hover:bg-ship/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Confirm Start Battle
           </button>
@@ -61,7 +63,8 @@ export function SetupControls({ onRandomize, onStartBattle, onUndo, canUndo }: S
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg border border-ship/50 bg-ship/10 text-ship-glow hover:bg-ship/20 transition-colors"
+          disabled={!canStartBattle}
+          className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg border border-ship/50 bg-ship/10 text-ship-glow hover:bg-ship/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Start Battle
         </button>
