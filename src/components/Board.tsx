@@ -75,6 +75,12 @@ export function Board({
   })();
 
   const handleCellKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onCellClick?.(x, y);
+      return;
+    }
+
     const moves: Record<string, { dx: number; dy: number }> = {
       ArrowUp: { dx: 0, dy: -1 },
       ArrowDown: { dx: 0, dy: 1 },
@@ -216,7 +222,9 @@ export function Board({
           </div>
         ))}
         {board.cells.map((row, y) =>
-          row.map((cell, x) => (
+          row.map((cell, x) => {
+            const cellDisabled = disabled || !onCellClick || cell.state === 'hit' || cell.state === 'miss' || cell.state === 'sunk';
+            return (
             <Cell
               key={`cell-${x}-${y}`}
               ref={(el) => {
@@ -225,9 +233,9 @@ export function Board({
               state={cell.state}
               isPlayerBoard={isPlayerBoard}
               isLastShot={lastShot?.x === x && lastShot?.y === y}
-              disabled={disabled || !onCellClick || cell.state === 'hit' || cell.state === 'miss' || cell.state === 'sunk'}
+              disabled={cellDisabled}
               label={`${ROW_LABELS[y]}${x + 1} ${isPlayerBoard || cell.state !== 'ship' ? cell.state : 'empty'}`}
-              tabIndex={activeCell?.x === x && activeCell?.y === y ? 0 : -1}
+              tabIndex={activeCell?.x === x && activeCell?.y === y && !cellDisabled ? 0 : -1}
               onClick={() => onCellClick && onCellClick(x, y)}
               onFocus={() => setActiveCell({ x, y })}
               onKeyDown={(e) => handleCellKeyDown(e, x, y)}
@@ -252,7 +260,7 @@ export function Board({
               }
               style={{ gridColumn: `${x + 2} / ${x + 3}`, gridRow: `${y + 2} / ${y + 3}` }}
             />
-          ))
+          )})
         )}
         {shipOverlays}
         {sinkingOverlay}
