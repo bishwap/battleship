@@ -12,6 +12,7 @@ import {
   canPlaceShip,
   createEmptyBoard,
   fireAt,
+  isValidTarget,
   placeShipOnBoard,
   placeShips,
   removeShip,
@@ -203,6 +204,7 @@ export function useGame() {
   const playerFire = useCallback((x: number, y: number) => {
     setGame((prev) => {
       if (prev.phase !== 'playing' || prev.gameOver || prev.turn !== 'player') return prev;
+      if (!isValidTarget(prev.enemyBoard, x, y)) return prev;
 
       const { board: newEnemyBoard, result } = fireAt(prev.enemyBoard, x, y);
       if (result.type === 'miss' && prev.enemyBoard.cells[y][x].state !== 'miss') {
@@ -381,7 +383,7 @@ export function useGame() {
     setGame((prev) => ({ ...prev, tally: newTally }));
     feedback.playSound(game.winner === 'player' ? 'win' : 'lose');
     tallyProcessed.current = game.winner;
-  }, [game.gameOver, game.winner]);
+  }, [game.gameOver, game.winner, game.tally]);
 
   useEffect(() => {
     if (!game.shakeSide) return;

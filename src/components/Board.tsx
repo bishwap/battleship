@@ -219,7 +219,7 @@ export function Board({
               isPlayerBoard={isPlayerBoard}
               isLastShot={lastShot?.x === x && lastShot?.y === y}
               disabled={disabled || !onCellClick}
-              label={`${ROW_LABELS[y]}${x + 1} ${cell.state}`}
+              label={`${ROW_LABELS[y]}${x + 1} ${isPlayerBoard || cell.state !== 'ship' ? cell.state : 'empty'}`}
               tabIndex={activeCell?.x === x && activeCell?.y === y ? 0 : -1}
               onClick={() => onCellClick && onCellClick(x, y)}
               onFocus={() => setActiveCell({ x, y })}
