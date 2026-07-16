@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { BOARD_SIZE } from '../lib/constants';
+import { BOARD_SIZE, SHIPS } from '../lib/constants';
+import { canPlaceShip } from '../lib/gameLogic';
 import type { Board as BoardType, Position, SinkingShip } from '../lib/types';
 import { Cell } from './Cell';
 import { Ship } from './Ship';
@@ -13,6 +14,8 @@ type BoardProps = {
   lastShot: Position | null;
   title: string;
   sinkingShip?: SinkingShip | null;
+  selectedShip?: string | null;
+  selectedOrientation?: 'horizontal' | 'vertical';
 };
 
 const ROW_LABELS = 'ABCDEFGHIJ'.split('');
@@ -26,9 +29,12 @@ export function Board({
   lastShot,
   title,
   sinkingShip,
+  selectedShip,
+  selectedOrientation = 'horizontal',
 }: BoardProps) {
   const isInteractive = !disabled && !!onCellClick;
   const [activeCell, setActiveCell] = useState<{ x: number; y: number } | null>(null);
+  const [hoverCell, setHoverCell] = useState<{ x: number; y: number } | null>(null);
   const cellRefs = useRef<(HTMLButtonElement | null)[][]>(
     Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null))
   );
@@ -49,6 +55,24 @@ export function Board({
       el.focus({ preventScroll: true });
     }
   }, [activeCell]);
+
+  const previewCell = hoverCell || activeCell;
+
+  const preview = (() => {
+    if (!selectedShip || !previewCell || !isInteractive) return null;
+    const ship = SHIPS.find((s) => s.id === selectedShip);
+    if (!ship) return null;
+    const positions: { x: number; y: number }[] = [];
+    for (let i = 0; i < ship.length; i++) {
+      const x = previewCell.x + (selectedOrientation === 'vertical' ? 0 : i);
+      const y = previewCell.y + (selectedOrientation === 'vertical' ? i : 0);
+      if (x < BOARD_SIZE && y < BOARD_SIZE) {
+        positions.push({ x, y });
+      }
+    }
+    const valid = canPlaceShip(board.cells, ship, previewCell.x, previewCell.y, selectedOrientation);
+    return { positions, valid };
+  })();
 
   const handleCellKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) => {
     const moves: Record<string, { dx: number; dy: number }> = {
@@ -163,6 +187,7 @@ export function Board({
             gridTemplateColumns: 'auto repeat(10, minmax(44px, 1fr))',
             gridTemplateRows: 'auto repeat(10, auto)',
           }}
+          onMouseLeave={() => setHoverCell(null)}
         >
         <div style={{ gridColumn: '1 / 2', gridRow: '1 / 2' }} />
         {Array.from({ length: BOARD_SIZE }, (_, i) => (
@@ -199,6 +224,9 @@ export function Board({
               onClick={() => onCellClick && onCellClick(x, y)}
               onFocus={() => setActiveCell({ x, y })}
               onKeyDown={(e) => handleCellKeyDown(e, x, y)}
+              onMouseEnter={() => setHoverCell({ x, y })}
+              isPreview={preview?.positions.some((p) => p.x === x && p.y === y) ?? false}
+              isValid={preview?.valid ?? false}
               onDrop={
                 onCellDrop
                   ? (e) => {

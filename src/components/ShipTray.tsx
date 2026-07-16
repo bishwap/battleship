@@ -4,17 +4,28 @@ import { Ship } from './Ship';
 
 type ShipTrayProps = {
   ships: ShipType[];
+  selectedShipId?: string | null;
+  onSelectShip?: (shipId: string, orientation: 'horizontal' | 'vertical') => void;
   className?: string;
 };
 
-export function ShipTray({ ships, className = '' }: ShipTrayProps) {
+export function ShipTray({ ships, selectedShipId, onSelectShip, className = '' }: ShipTrayProps) {
   const [orientations, setOrientations] = useState<Record<string, 'horizontal' | 'vertical'>>({});
 
   const rotate = (shipId: string) => {
+    const newOrientation = orientations[shipId] === 'vertical' ? 'horizontal' : 'vertical';
     setOrientations((prev) => ({
       ...prev,
-      [shipId]: prev[shipId] === 'vertical' ? 'horizontal' : 'vertical',
+      [shipId]: newOrientation,
     }));
+    if (selectedShipId === shipId) {
+      onSelectShip?.(shipId, newOrientation);
+    }
+  };
+
+  const handleSelect = (ship: ShipType) => {
+    const orientation = orientations[ship.id] || 'horizontal';
+    onSelectShip?.(ship.id, orientation);
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, ship: ShipType) => {
@@ -34,14 +45,16 @@ export function ShipTray({ ships, className = '' }: ShipTrayProps) {
           const orientation = orientations[ship.id] || 'horizontal';
           const width = orientation === 'horizontal' ? `${ship.length * 1.5}rem` : '2rem';
           const height = orientation === 'horizontal' ? '2rem' : `${ship.length * 1.5}rem`;
+          const isSelected = selectedShipId === ship.id;
           return (
             <div key={ship.id} className="flex flex-col items-center gap-2">
               <div
                 draggable
                 onDragStart={(e) => handleDragStart(e, ship)}
+                onClick={() => handleSelect(ship)}
                 style={{ width, height }}
-                className="cursor-move"
-                title={`Drag ${ship.name} to your board`}
+                className={`cursor-move ${isSelected ? 'ring-2 ring-radar rounded' : ''}`}
+                title={`Select ${ship.name} and tap your board to place`}
               >
                 <Ship id={ship.id} length={ship.length} orientation={orientation} state="intact" className="w-full h-full pixel-art" />
               </div>
@@ -49,7 +62,7 @@ export function ShipTray({ ships, className = '' }: ShipTrayProps) {
               <button
                 type="button"
                 onClick={() => rotate(ship.id)}
-                className="text-[10px] px-2 py-1 rounded border border-radar/30 text-radar-glow hover:bg-radar/10"
+                className={`text-[10px] px-2 py-1 rounded border border-radar/30 text-radar-glow hover:bg-radar/10 ${isSelected ? 'bg-radar/20' : ''}`}
               >
                 Rotate
               </button>

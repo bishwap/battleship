@@ -21,6 +21,9 @@ type CellProps = {
   tabIndex?: number;
   onFocus?: React.FocusEventHandler<HTMLButtonElement>;
   onKeyDown?: React.KeyboardEventHandler<HTMLButtonElement>;
+  onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>;
+  isPreview?: boolean;
+  isValid?: boolean;
 };
 
 function cellContent(state: CellState, isPlayerBoard: boolean, firing: boolean) {
@@ -48,27 +51,28 @@ function cellContent(state: CellState, isPlayerBoard: boolean, firing: boolean) 
   }
 }
 
-function cellClasses(state: CellState, isPlayerBoard: boolean, disabled: boolean) {
+function cellClasses(state: CellState, isPlayerBoard: boolean, disabled: boolean, isPreview?: boolean, isValid?: boolean) {
   const base =
     'board-cell relative overflow-hidden w-full flex items-center justify-center rounded border border-grid/60 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-radar focus-visible:ring-offset-2 focus-visible:ring-offset-ocean active:scale-95 disabled:opacity-60';
   const cursor = disabled ? ' cursor-default' : ' cursor-pointer hover:border-radar hover:brightness-110';
+  const preview = isPreview ? (isValid ? ' bg-ship/20 ring-1 ring-ship-glow' : ' bg-hit/20 ring-1 ring-hit-glow') : '';
 
   switch (state) {
     case 'miss':
-      return `${base} z-20 bg-radar/15 text-radar-glow${cursor}`;
+      return `${base} z-20 bg-radar/15 text-radar-glow${cursor}${preview}`;
     case 'hit':
-      return `${base} z-20 bg-hit/20 text-hit-glow${cursor}`;
+      return `${base} z-20 bg-hit/20 text-hit-glow${cursor}${preview}`;
     case 'sunk':
-      return `${base} z-20 bg-sunk text-sunk-glow${cursor}`;
+      return `${base} z-20 bg-sunk text-sunk-glow${cursor}${preview}`;
     case 'ship':
-      return `${base} z-0 ${isPlayerBoard ? 'bg-ship/10' : 'bg-ocean'}${cursor}`;
+      return `${base} z-0 ${isPlayerBoard ? 'bg-ship/10' : 'bg-ocean'}${cursor}${preview}`;
     default:
-      return `${base} z-0 bg-ocean${cursor}`;
+      return `${base} z-0 bg-ocean${cursor}${preview}`;
   }
 }
 
 export const Cell = forwardRef<HTMLButtonElement, CellProps>(
-  ({ state, isPlayerBoard, isLastShot, onClick, onDrop, disabled, label, style, tabIndex, onFocus, onKeyDown }, ref) => {
+  ({ state, isPlayerBoard, isLastShot, onClick, onDrop, disabled, label, style, tabIndex, onFocus, onKeyDown, onMouseEnter, isPreview, isValid }, ref) => {
     const [firing, setFiring] = useState(false);
 
     useEffect(() => {
@@ -91,10 +95,11 @@ export const Cell = forwardRef<HTMLButtonElement, CellProps>(
         onDrop={onDrop}
         onFocus={onFocus}
         onKeyDown={onKeyDown}
+        onMouseEnter={onMouseEnter}
         onDragOver={(e) => {
           if (onDrop) e.preventDefault();
         }}
-        className={cellClasses(state, isPlayerBoard, disabled)}
+        className={cellClasses(state, isPlayerBoard, disabled, isPreview, isValid)}
         style={style}
       >
         {cellContent(state, isPlayerBoard, firing)}

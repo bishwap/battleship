@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSettings } from './contexts/SettingsContext';
 import { useGame } from './hooks/useGame';
 import { SHIPS } from './lib/constants';
+import { canPlaceShip } from './lib/gameLogic';
 import { Board } from './components/Board';
 import { CommanderChat } from './components/CommanderChat';
 import { FleetPanel } from './components/FleetPanel';
@@ -27,6 +28,8 @@ function App() {
     beginBattle,
   } = useGame();
   const [showIntro, setShowIntro] = useState(true);
+  const [selectedShip, setSelectedShip] = useState<string | null>(null);
+  const [selectedOrientation, setSelectedOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
   const { settings, setSound } = useSettings();
 
   useEffect(() => {
@@ -83,6 +86,51 @@ function App() {
     (ship) => !game.playerBoard.ships.some((placed) => placed.id === ship.id)
   );
 
+  const handleSelectShip = (shipId: string, orientation: 'horizontal' | 'vertical') => {
+    setSelectedShip(shipId);
+    setSelectedOrientation(orientation);
+  };
+
+  const handleSetupCellClick = (x: number, y: number) => {
+    const cellShipId = game.playerBoard.cells[y]?.[x]?.shipId;
+    if (selectedShip && cellShipId === selectedShip) {
+      setSelectedShip(null);
+      return;
+    }
+    if (cellShipId) {
+      removeShipFromBoard(x, y);
+      setSelectedShip(null);
+      return;
+    }
+    if (selectedShip) {
+      const ship = SHIPS.find((s) => s.id === selectedShip);
+      if (ship && canPlaceShip(game.playerBoard.cells, ship, x, y, selectedOrientation)) {
+        placeShip(selectedShip, x, y, selectedOrientation);
+        setSelectedShip(null);
+      }
+    }
+  };
+
+  const handleRandomize = () => {
+    setSelectedShip(null);
+    randomizePlacement();
+  };
+
+  const handleUndo = () => {
+    setSelectedShip(null);
+    undoLastPlacement();
+  };
+
+  const handleStartBattle = () => {
+    setSelectedShip(null);
+    beginBattle();
+  };
+
+  const handleNewGame = () => {
+    setSelectedShip(null);
+    startGame();
+  };
+
   return (
     <div className="safe-area flex flex-col min-h-screen min-h-[100dvh]">
       {showIntro && <Intro onDone={() => setShowIntro(false)} />}
@@ -108,9 +156,9 @@ function App() {
                 className="px-3 py-2 rounded border border-grid bg-ocean-light text-text text-sm focus:border-radar focus:outline-none"
               />
               <SetupControls
-                onRandomize={randomizePlacement}
-                onStartBattle={beginBattle}
-                onUndo={undoLastPlacement}
+                onRandomize={handleRandomize}
+                onStartBattle={handleStartBattle}
+                onUndo={handleUndo}
                 canUndo={game.placementHistory.length > 0}
               />
             </div>
@@ -147,18 +195,20 @@ function App() {
             <Board
               board={game.playerBoard}
               isPlayerBoard
-              onCellClick={(x, y) => removeShipFromBoard(x, y)}
+              onCellClick={handleSetupCellClick}
               onCellDrop={(shipId, orientation, x, y) => placeShip(shipId, x, y, orientation)}
               disabled={false}
               title="Your Fleet"
               lastShot={null}
               sinkingShip={null}
+              selectedShip={selectedShip}
+              selectedOrientation={selectedOrientation}
             />
           )}
 
           {game.phase === 'playing' && (
             <div className="flex justify-center py-2">
-              <GameControls onNewGame={startGame} />
+              <GameControls onNewGame={handleNewGame} />
             </div>
           )}
         </section>
@@ -175,7 +225,11 @@ function App() {
           )}
           {game.phase === 'setup' && (
             <>
-              <ShipTray ships={unplacedShips} />
+              <ShipTray
+                ships={unplacedShips}
+                selectedShipId={selectedShip}
+                onSelectShip={handleSelectShip}
+              />
               {game.playerBoard.ships.length > 0 && (
                 <FleetPanel ships={game.playerBoard.ships} label="Placed Ships" />
               )}
@@ -189,7 +243,7 @@ function App() {
           winner={game.winner}
           playerName={game.admiralName}
           tally={game.tally}
-          onPlayAgain={startGame}
+          onPlayAgain={handleNewGame}
         />
       )}
     </div>
