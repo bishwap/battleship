@@ -8,10 +8,16 @@ type CommanderChatProps = {
 
 export function CommanderChat({ messages }: CommanderChatProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [shake, setShake] = useState(false);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollRef.current && bottomRef.current) {
+      scrollRef.current.scrollTo({
+        top: bottomRef.current.offsetTop,
+        behavior: 'smooth',
+      });
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -29,7 +35,7 @@ export function CommanderChat({ messages }: CommanderChatProps) {
   return (
     <div className={`flex flex-col flex-1 bg-ocean-light/50 border border-grid rounded-lg p-4 max-h-[240px] sm:max-h-[320px] ${shake ? 'animate-shake' : ''}`}>
       <h3 className="text-accent text-base font-bold tracking-wider mb-2 uppercase">Command Channel</h3>
-      <div className="flex-1 overflow-y-auto scrollbar-thin space-y-3 max-h-full">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin space-y-3 max-h-full">
         {visibleMessages.map((msg) => {
           const isPlayer = msg.speaker === 'player';
           const isSystem = msg.speaker === 'system';

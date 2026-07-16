@@ -30,6 +30,12 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (game.phase === 'playing' && game.turn === 'player' && !game.gameOver) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [game.phase, game.turn, game.gameOver]);
+
   const playerLastShot = game.lastShot?.side === 'ai' ? game.lastShot : null;
   const enemyLastShot = game.lastShot?.side === 'player' ? game.lastShot : null;
   const playerSinkingShip = game.sinkingShip?.side === 'player' ? game.sinkingShip : null;
