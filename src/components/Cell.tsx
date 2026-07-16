@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import type { CellState } from '../lib/types';
 import {
   CannonballIcon,
@@ -18,6 +18,9 @@ type CellProps = {
   disabled: boolean;
   label: string;
   style?: React.CSSProperties;
+  tabIndex?: number;
+  onFocus?: React.FocusEventHandler<HTMLButtonElement>;
+  onKeyDown?: React.KeyboardEventHandler<HTMLButtonElement>;
 };
 
 function cellContent(state: CellState, isPlayerBoard: boolean, firing: boolean) {
@@ -47,7 +50,7 @@ function cellContent(state: CellState, isPlayerBoard: boolean, firing: boolean) 
 
 function cellClasses(state: CellState, isPlayerBoard: boolean, disabled: boolean) {
   const base =
-    'board-cell relative overflow-hidden w-full flex items-center justify-center rounded border border-grid/60 transition-colors duration-200';
+    'board-cell relative overflow-hidden w-full flex items-center justify-center rounded border border-grid/60 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-radar focus-visible:ring-offset-2 focus-visible:ring-offset-ocean active:scale-95 disabled:opacity-60';
   const cursor = disabled ? ' cursor-default' : ' cursor-pointer hover:border-radar hover:brightness-110';
 
   switch (state) {
@@ -64,46 +67,45 @@ function cellClasses(state: CellState, isPlayerBoard: boolean, disabled: boolean
   }
 }
 
-export function Cell({
-  state,
-  isPlayerBoard,
-  isLastShot,
-  onClick,
-  onDrop,
-  disabled,
-  label,
-  style,
-}: CellProps) {
-  const [firing, setFiring] = useState(false);
+export const Cell = forwardRef<HTMLButtonElement, CellProps>(
+  ({ state, isPlayerBoard, isLastShot, onClick, onDrop, disabled, label, style, tabIndex, onFocus, onKeyDown }, ref) => {
+    const [firing, setFiring] = useState(false);
 
-  useEffect(() => {
-    if (isLastShot) {
-      setFiring(true);
-      const timer = setTimeout(() => setFiring(false), 600);
-      return () => clearTimeout(timer);
-    }
-    setFiring(false);
-  }, [isLastShot]);
+    useEffect(() => {
+      if (isLastShot) {
+        setFiring(true);
+        const timer = setTimeout(() => setFiring(false), 600);
+        return () => clearTimeout(timer);
+      }
+      setFiring(false);
+    }, [isLastShot]);
 
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled || firing}
-      onClick={onClick}
-      onDrop={onDrop}
-      onDragOver={(e) => {
-        if (onDrop) e.preventDefault();
-      }}
-      className={cellClasses(state, isPlayerBoard, disabled)}
-      style={style}
-    >
-      {cellContent(state, isPlayerBoard, firing)}
-      {firing && (
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
-          <CannonballIcon className="w-3/5 h-3/5 animate-drop" />
-        </span>
-      )}
-    </button>
-  );
-}
+    return (
+      <button
+        ref={ref}
+        type="button"
+        aria-label={label}
+        disabled={disabled || firing}
+        tabIndex={tabIndex}
+        onClick={onClick}
+        onDrop={onDrop}
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
+        onDragOver={(e) => {
+          if (onDrop) e.preventDefault();
+        }}
+        className={cellClasses(state, isPlayerBoard, disabled)}
+        style={style}
+      >
+        {cellContent(state, isPlayerBoard, firing)}
+        {firing && (
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
+            <CannonballIcon className="w-3/5 h-3/5 animate-drop" />
+          </span>
+        )}
+      </button>
+    );
+  }
+);
+
+Cell.displayName = 'Cell';

@@ -60,8 +60,9 @@ export type GameState = {
   aiMemory: AiMemory;
   status: string;
   shakeSide: 'player' | 'ai' | null;
-  lastShot: { x: number; y: number; side: 'player' | 'ai' } | null;
+  lastShot: { x: number; y: number; side: 'player' | 'ai'; result: 'miss' | 'hit' | 'sunk' } | null;
   sinkingShip: SinkingShip | null;
   admiralName: string;
   tally: { wins: number; losses: number };
+  placementHistory: string[];
 };

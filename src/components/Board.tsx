@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { BOARD_SIZE } from '../lib/constants';
 import type { Board as BoardType, Position, SinkingShip } from '../lib/types';
 import { Cell } from './Cell';
@@ -26,6 +27,45 @@ export function Board({
   title,
   sinkingShip,
 }: BoardProps) {
+  const isInteractive = !disabled && !!onCellClick;
+  const [activeCell, setActiveCell] = useState<{ x: number; y: number } | null>(null);
+  const cellRefs = useRef<(HTMLButtonElement | null)[][]>(
+    Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null))
+  );
+
+  useEffect(() => {
+    if (isInteractive && !activeCell) {
+      setActiveCell({ x: 0, y: 0 });
+    }
+    if (!isInteractive) {
+      setActiveCell(null);
+    }
+  }, [isInteractive, activeCell]);
+
+  useEffect(() => {
+    if (!activeCell) return;
+    const el = cellRefs.current[activeCell.y]?.[activeCell.x];
+    if (el && document.activeElement !== el) {
+      el.focus({ preventScroll: true });
+    }
+  }, [activeCell]);
+
+  const handleCellKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) => {
+    const moves: Record<string, { dx: number; dy: number }> = {
+      ArrowUp: { dx: 0, dy: -1 },
+      ArrowDown: { dx: 0, dy: 1 },
+      ArrowLeft: { dx: -1, dy: 0 },
+      ArrowRight: { dx: 1, dy: 0 },
+    };
+    const move = moves[e.key];
+    if (!move) return;
+    e.preventDefault();
+    setActiveCell({
+      x: Math.max(0, Math.min(BOARD_SIZE - 1, x + move.dx)),
+      y: Math.max(0, Math.min(BOARD_SIZE - 1, y + move.dy)),
+    });
+  };
+
   const shipData = (() => {
     const data = new Map<string, { orientation: 'horizontal' | 'vertical'; length: number; positions: { x: number; y: number }[] }>();
     for (let y = 0; y < BOARD_SIZE; y++) {
@@ -116,13 +156,14 @@ export function Board({
   return (
     <div className={`flex flex-col items-center w-full rounded-lg p-2 sm:p-4 ${themeClass}`}>
       <h3 className={`text-sm sm:text-base font-bold tracking-wider mb-2 sm:mb-3 uppercase ${titleClass}`}>{title}</h3>
-      <div
-        className="grid w-full gap-1 sm:gap-1.5"
-        style={{
-          gridTemplateColumns: 'auto repeat(10, minmax(0, 1fr))',
-          gridTemplateRows: 'auto repeat(10, auto)',
-        }}
-      >
+      <div className="w-full overflow-x-auto">
+        <div
+          className="grid w-full min-w-max gap-1 sm:gap-1.5"
+          style={{
+            gridTemplateColumns: 'auto repeat(10, minmax(44px, 1fr))',
+            gridTemplateRows: 'auto repeat(10, auto)',
+          }}
+        >
         <div style={{ gridColumn: '1 / 2', gridRow: '1 / 2' }} />
         {Array.from({ length: BOARD_SIZE }, (_, i) => (
           <div
@@ -146,12 +187,18 @@ export function Board({
           row.map((cell, x) => (
             <Cell
               key={`cell-${x}-${y}`}
+              ref={(el) => {
+                cellRefs.current[y][x] = el;
+              }}
               state={cell.state}
               isPlayerBoard={isPlayerBoard}
               isLastShot={lastShot?.x === x && lastShot?.y === y}
               disabled={disabled || !onCellClick}
               label={`${ROW_LABELS[y]}${x + 1} ${cell.state}`}
+              tabIndex={activeCell?.x === x && activeCell?.y === y ? 0 : -1}
               onClick={() => onCellClick && onCellClick(x, y)}
+              onFocus={() => setActiveCell({ x, y })}
+              onKeyDown={(e) => handleCellKeyDown(e, x, y)}
               onDrop={
                 onCellDrop
                   ? (e) => {
@@ -174,6 +221,7 @@ export function Board({
         )}
         {shipOverlays}
         {sinkingOverlay}
+        </div>
       </div>
     </div>
   );

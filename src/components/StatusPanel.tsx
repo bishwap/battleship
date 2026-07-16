@@ -30,10 +30,17 @@ export function StatusPanel({ status, turn, gameOver, winner, playerName }: Stat
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-accent mb-1">
         Battleshipz
       </h1>
-      <div className={`text-sm sm:text-base font-bold ${color} ${turn === 'ai' && !gameOver ? 'animate-pulse' : ''}`}>
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={`text-sm sm:text-base font-bold ${color} ${turn === 'ai' && !gameOver ? 'animate-pulse' : ''}`}
+      >
         {title}
       </div>
-      <p className="text-muted text-xs sm:text-sm mt-1">{status}</p>
+      <p className="text-muted text-xs sm:text-sm mt-1" aria-live="polite" aria-atomic="true">
+        {status}
+      </p>
     </div>
   );
 }

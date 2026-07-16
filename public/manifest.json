@@ -1,0 +1,25 @@
+{
+  "name": "Battleshipz",
+  "short_name": "Battleshipz",
+  "description": "A cross-device, tactical naval battle game.",
+  "start_url": "/battleship/",
+  "scope": "/battleship/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/battleship/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/battleship/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ]
+}

@@ -28,6 +28,7 @@ import {
   playerWinMessage,
 } from '../lib/storyEngine';
 import type { GameState } from '../lib/types';
+import { feedback } from '../lib/feedback';
 
 const STORAGE_NAME_KEY = 'battleshipz-admiral';
 const STORAGE_TALLY_KEY = 'battleshipz-tally';
@@ -72,12 +73,14 @@ function createInitialGame(): GameState {
     sinkingShip: null,
     admiralName,
     tally: loadTally(),
+    placementHistory: [],
   };
 }
 
 export function useGame() {
   const [game, setGame] = useState<GameState>(createInitialGame);
   const tallyProcessed = useRef<'player' | 'ai' | null>(null);
+  const prevPlacementHistory = useRef<string[]>([]);
 
   const startGame = useCallback(() => {
     tallyProcessed.current = null;
@@ -95,6 +98,7 @@ export function useGame() {
       shakeSide: null,
       lastShot: null,
       sinkingShip: null,
+      placementHistory: [],
     }));
   }, []);
 
@@ -123,9 +127,13 @@ export function useGame() {
         if (canPlaceShip(prev.playerBoard.cells, ship, x, y, orientation)) {
           const playerBoard = placeShipOnBoard(prev.playerBoard, ship, x, y, orientation);
           const allPlaced = playerBoard.ships.length === SHIPS.length;
+          const history = prev.placementHistory.includes(shipId)
+            ? prev.placementHistory.filter((id) => id !== shipId).concat(shipId)
+            : [...prev.placementHistory, shipId];
           return {
             ...prev,
             playerBoard,
+            placementHistory: history,
             status: allPlaced ? 'Fleet ready. Press Start Battle.' : `Place your fleet, ${prev.admiralName}.`,
           };
         }
@@ -144,6 +152,7 @@ export function useGame() {
       return {
         ...prev,
         playerBoard,
+        placementHistory: prev.placementHistory.filter((id) => id !== shipId),
         status: `Place your fleet, ${prev.admiralName}.`,
       };
     });
@@ -155,6 +164,7 @@ export function useGame() {
       return {
         ...prev,
         playerBoard: placeShips(SHIPS),
+        placementHistory: SHIPS.map((s) => s.id),
         status: 'Fleet ready. Press Start Battle.',
       };
     });
@@ -170,6 +180,22 @@ export function useGame() {
         phase: 'playing',
         enemyBoard: placeShips(SHIPS),
         status: `${prev.admiralName}'s turn — fire at the enemy fleet.`,
+      };
+    });
+  }, []);
+
+  const undoLastPlacement = useCallback(() => {
+    setGame((prev) => {
+      if (prev.phase !== 'setup' || prev.placementHistory.length === 0) return prev;
+      const history = [...prev.placementHistory];
+      const shipId = history.pop();
+      if (!shipId) return prev;
+      const playerBoard = removeShip(prev.playerBoard, shipId);
+      return {
+        ...prev,
+        playerBoard,
+        placementHistory: history,
+        status: `Place your fleet, ${prev.admiralName}.`,
       };
     });
   }, []);
@@ -191,7 +217,7 @@ export function useGame() {
           chat,
           status,
           shakeSide: null,
-          lastShot: { x, y, side: 'player' as const },
+          lastShot: { x, y, side: 'player' as const, result: result.type },
         };
       }
 
@@ -209,7 +235,7 @@ export function useGame() {
             winner: 'player' as const,
             chat,
             status: 'Victory! All enemy ships destroyed.',
-            lastShot: { x, y, side: 'player' as const },
+            lastShot: { x, y, side: 'player' as const, result: result.type },
           };
         }
         return {
@@ -218,7 +244,7 @@ export function useGame() {
           chat,
           status: `Hit! Fire again, ${PLAYER_COMMANDER}.`,
           shakeSide: 'ai' as const,
-          lastShot: { x, y, side: 'player' as const },
+          lastShot: { x, y, side: 'player' as const, result: result.type },
         };
       }
 
@@ -236,7 +262,7 @@ export function useGame() {
             winner: 'player' as const,
             chat,
             status: 'Victory! All enemy ships destroyed.',
-            lastShot: { x, y, side: 'player' as const },
+            lastShot: { x, y, side: 'player' as const, result: result.type },
             sinkingShip,
           };
         }
@@ -246,7 +272,7 @@ export function useGame() {
           chat,
           status: `Sunk! ${result.shipName} destroyed. Fire again.`,
           shakeSide: 'ai' as const,
-          lastShot: { x, y, side: 'player' as const },
+          lastShot: { x, y, side: 'player' as const, result: result.type },
           sinkingShip,
         };
       }
@@ -276,7 +302,7 @@ export function useGame() {
             chat,
             status: `${PLAYER_COMMANDER}'s turn — fire at the enemy fleet.`,
             shakeSide: null,
-            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
+            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
           };
         }
 
@@ -295,7 +321,7 @@ export function useGame() {
               winner: 'ai' as const,
               chat,
               status: 'Defeat. Your fleet has been destroyed.',
-              lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
+              lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
             };
           }
           return {
@@ -305,7 +331,7 @@ export function useGame() {
             chat,
             status: `${AI_COMMANDER} hit your ship. Re-engaging...`,
             shakeSide: 'player' as const,
-            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
+            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
           };
         }
 
@@ -324,7 +350,7 @@ export function useGame() {
               winner: 'ai' as const,
               chat,
               status: 'Defeat. Your fleet has been destroyed.',
-              lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
+              lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
               sinkingShip,
             };
           }
@@ -335,7 +361,7 @@ export function useGame() {
             chat,
             status: `${AI_COMMANDER} sunk your ${result.shipName}. Retaliating...`,
             shakeSide: 'player' as const,
-            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const },
+            lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
             sinkingShip,
           };
         }
@@ -353,6 +379,7 @@ export function useGame() {
     const newTally = { ...game.tally, [key]: game.tally[key] + 1 };
     saveTally(newTally);
     setGame((prev) => ({ ...prev, tally: newTally }));
+    feedback.playSound(game.winner === 'player' ? 'win' : 'lose');
     tallyProcessed.current = game.winner;
   }, [game.gameOver, game.winner]);
 
@@ -374,6 +401,22 @@ export function useGame() {
     return () => clearTimeout(timer);
   }, [game.sinkingShip]);
 
+  useEffect(() => {
+    if (game.gameOver || !game.lastShot) return;
+    feedback.playSound(game.lastShot.result);
+    feedback.triggerHaptic(game.lastShot.result);
+  }, [game.lastShot, game.gameOver]);
+
+  useEffect(() => {
+    const prev = prevPlacementHistory.current;
+    const current = game.placementHistory;
+    if (current.join(',') !== prev.join(',')) {
+      feedback.playSound('tap');
+      feedback.triggerHaptic('tap');
+    }
+    prevPlacementHistory.current = current;
+  }, [game.placementHistory]);
+
   return {
     game,
     playerFire,
@@ -382,6 +425,7 @@ export function useGame() {
     placeShip,
     removeShipFromBoard,
     randomizePlacement,
+    undoLastPlacement,
     beginBattle,
   };
 }

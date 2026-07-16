@@ -25,6 +25,11 @@
   box-sizing: border-box;
 }
 
+button,
+[role='button'] {
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   background: radial-gradient(circle at 50% 0%, var(--ocean-light), var(--ocean));
@@ -36,8 +41,23 @@ body {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+.safe-area {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+}
+
+@media (min-width: 640px) {
+  .safe-area {
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
 }
 
 .pixel-art {
@@ -99,6 +119,8 @@ body {
 
 .board-cell {
   aspect-ratio: 1 / 1;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .chat-bubble {
@@ -220,5 +242,25 @@ body {
     radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.2) 0%, transparent 10%),
     radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 15%);
   background-size: 20px 20px, 24px 24px, 32px 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html[data-reduced-motion='true'] *,
+html[data-reduced-motion='true'] *::before,
+html[data-reduced-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 

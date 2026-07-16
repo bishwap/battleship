@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSettings } from './contexts/SettingsContext';
 import { useGame } from './hooks/useGame';
 import { SHIPS } from './lib/constants';
 import { Board } from './components/Board';
@@ -11,6 +12,7 @@ import { ResultOverlay } from './components/ResultOverlay';
 import { ShipTray } from './components/ShipTray';
 import { SetupControls } from './components/SetupControls';
 import { TallyBoard } from './components/TallyBoard';
+import { SettingsPanel } from './components/SettingsPanel';
 
 function App() {
   const {
@@ -21,9 +23,11 @@ function App() {
     placeShip,
     removeShipFromBoard,
     randomizePlacement,
+    undoLastPlacement,
     beginBattle,
   } = useGame();
   const [showIntro, setShowIntro] = useState(true);
+  const { settings, setSound } = useSettings();
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 2500);
@@ -36,6 +40,40 @@ function App() {
     }
   }, [game.phase, game.turn, game.gameOver]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+
+      switch (e.key.toLowerCase()) {
+        case 'n':
+          e.preventDefault();
+          startGame();
+          break;
+        case 'u':
+          if (game.phase === 'setup') {
+            e.preventDefault();
+            undoLastPlacement();
+          }
+          break;
+        case 'r':
+          if (game.phase === 'setup') {
+            e.preventDefault();
+            randomizePlacement();
+          }
+          break;
+        case 'm':
+          e.preventDefault();
+          setSound(!settings.sound);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [game.phase, startGame, undoLastPlacement, randomizePlacement, setSound, settings.sound]);
+
   const playerLastShot = game.lastShot?.side === 'ai' ? game.lastShot : null;
   const enemyLastShot = game.lastShot?.side === 'player' ? game.lastShot : null;
   const playerSinkingShip = game.sinkingShip?.side === 'player' ? game.sinkingShip : null;
@@ -46,7 +84,7 @@ function App() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen px-3 sm:px-6 py-2">
+    <div className="safe-area flex flex-col min-h-screen min-h-[100dvh]">
       {showIntro && <Intro onDone={() => setShowIntro(false)} />}
 
       <StatusPanel
@@ -72,6 +110,8 @@ function App() {
               <SetupControls
                 onRandomize={randomizePlacement}
                 onStartBattle={beginBattle}
+                onUndo={undoLastPlacement}
+                canUndo={game.placementHistory.length > 0}
               />
             </div>
           )}
@@ -126,6 +166,7 @@ function App() {
         <aside className="lg:col-span-4 flex flex-col gap-4 h-full">
           {game.phase === 'playing' && <CommanderChat messages={game.chat} />}
           <TallyBoard name={game.admiralName} tally={game.tally} />
+          <SettingsPanel />
           {game.phase === 'playing' && (
             <>
               <FleetPanel ships={game.enemyBoard.ships} label="Enemy Fleet Status" />
