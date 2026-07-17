@@ -21,7 +21,7 @@ export function TallyBoard({ name, tally }: TallyBoardProps) {
           <div className="text-lg font-bold text-sunk-glow">{tally.losses}</div>
         </div>
         <div className="bg-ocean rounded p-2">
-          <div className="text-xs text-muted">Win %</div>
+          <div className="text-xs text-muted">Win Rate</div>
           <div className="text-lg font-bold text-radar-glow">{winRate}%</div>
         </div>
       </div>
