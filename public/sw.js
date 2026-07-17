@@ -1,6 +1,8 @@
 const CACHE_NAME = 'battleshipz-v3';
 const OFFLINE_PAGE = '/battleship/offline.html';
 const APP_SHELL = [
+  '/battleship/',
+  '/battleship/index.html',
   '/battleship/offline.html',
   '/battleship/favicon.svg',
   '/battleship/apple-touch-icon.png',
@@ -59,7 +61,27 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() =>
-          caches.match(event.request).then((cached) => cached || caches.match(OFFLINE_PAGE).then((offline) => offline || new Response('Offline')))
+          caches
+            .match(event.request)
+            .then(
+              (cached) =>
+                cached ||
+                caches
+                  .match('/battleship/index.html')
+                  .then(
+                    (index) =>
+                      index ||
+                      caches
+                        .match('/battleship/')
+                        .then(
+                          (root) =>
+                            root ||
+                            caches
+                              .match(OFFLINE_PAGE)
+                              .then((offline) => offline || new Response('Offline'))
+                        )
+                  )
+            )
         )
     );
     return;
