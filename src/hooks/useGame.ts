@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AI_COMMANDER,
   DEFAULT_PLAYER_COMMANDER,
+  DIFFICULTY_CONFIGS,
   PLAYER_COMMANDER,
   setPlayerCommander,
-  SHIPS,
+  type Difficulty,
 } from '../lib/constants';
 import { createAiMemory, chooseAiShot, updateAiMemory } from '../lib/ai';
 import {
@@ -33,11 +34,24 @@ import type { GameState } from '../lib/types';
 import { feedback } from '../lib/feedback';
 
 const STORAGE_NAME_KEY = 'battleshipz-admiral';
+const STORAGE_DIFFICULTY_KEY = 'battleshipz-difficulty';
 const STORAGE_TALLY_KEY = 'battleshipz-tally';
 
 function loadName(): string {
   if (typeof window === 'undefined') return DEFAULT_PLAYER_COMMANDER;
   return localStorage.getItem(STORAGE_NAME_KEY) || DEFAULT_PLAYER_COMMANDER;
+}
+
+function loadDifficulty(): Difficulty {
+  if (typeof window === 'undefined') return 'medium';
+  const raw = localStorage.getItem(STORAGE_DIFFICULTY_KEY);
+  if (raw === 'easy' || raw === 'medium' || raw === 'hard') return raw;
+  return 'medium';
+}
+
+function saveDifficulty(difficulty: Difficulty) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_DIFFICULTY_KEY, difficulty);
 }
 
 function loadTally(): { wins: number; losses: number } {
@@ -56,10 +70,12 @@ function saveTally(tally: { wins: number; losses: number }) {
 }
 
 function createInitialGame(): GameState {
+  const difficulty = loadDifficulty();
+  const config = DIFFICULTY_CONFIGS[difficulty];
   const admiralName = loadName();
   setPlayerCommander(admiralName);
-  const playerBoard = createEmptyBoard();
-  const enemyBoard = createEmptyBoard();
+  const playerBoard = createEmptyBoard(config.boardSize);
+  const enemyBoard = createEmptyBoard(config.boardSize);
   return {
     phase: 'setup',
     playerBoard,
@@ -78,6 +94,8 @@ function createInitialGame(): GameState {
     placementHistory: [],
     stats: { player: { shots: 0, hits: 0, misses: 0, sunk: 0 }, ai: { shots: 0, hits: 0, misses: 0, sunk: 0 } },
     consecutiveMisses: 0,
+    difficulty,
+    shipSet: config.shipSet,
   };
 }
 
@@ -86,26 +104,35 @@ export function useGame() {
   const tallyProcessed = useRef<'player' | 'ai' | null>(null);
   const prevPlacementHistory = useRef<string[]>([]);
 
-  const startGame = useCallback(() => {
+  const startGame = useCallback((difficulty?: Difficulty) => {
     tallyProcessed.current = null;
-    setGame((prev) => ({
-      ...prev,
-      phase: 'setup',
-      playerBoard: createEmptyBoard(),
-      enemyBoard: createEmptyBoard(),
-      turn: 'player',
-      gameOver: false,
-      winner: null,
-      chat: createIntroMessages(),
-      aiMemory: createAiMemory(),
-      status: `Place your fleet, ${prev.admiralName}.`,
-      shakeSide: null,
-      lastShot: null,
-      sinkingShip: null,
-      placementHistory: [],
-      stats: { player: { shots: 0, hits: 0, misses: 0, sunk: 0 }, ai: { shots: 0, hits: 0, misses: 0, sunk: 0 } },
-      consecutiveMisses: 0,
-    }));
+    setGame((prev) => {
+      const diff = difficulty ?? prev.difficulty;
+      const config = DIFFICULTY_CONFIGS[diff];
+      if (difficulty && typeof window !== 'undefined') {
+        saveDifficulty(diff);
+      }
+      return {
+        ...prev,
+        phase: 'setup',
+        difficulty: diff,
+        shipSet: config.shipSet,
+        playerBoard: createEmptyBoard(config.boardSize),
+        enemyBoard: createEmptyBoard(config.boardSize),
+        turn: 'player',
+        gameOver: false,
+        winner: null,
+        chat: createIntroMessages(),
+        aiMemory: createAiMemory(),
+        status: `Place your fleet, ${prev.admiralName}.`,
+        shakeSide: null,
+        lastShot: null,
+        sinkingShip: null,
+        placementHistory: [],
+        stats: { player: { shots: 0, hits: 0, misses: 0, sunk: 0 }, ai: { shots: 0, hits: 0, misses: 0, sunk: 0 } },
+        consecutiveMisses: 0,
+      };
+    });
   }, []);
 
   const setAdmiralName = useCallback((name: string) => {
@@ -129,12 +156,12 @@ export function useGame() {
       if (prev.phase !== 'setup') return prev;
       const bounds = getShipBounds(prev.playerBoard, shipId);
       if (!bounds) return prev;
-      const ship = SHIPS.find((s) => s.id === shipId);
+      const ship = prev.shipSet.find((s) => s.id === shipId);
       if (!ship) return prev;
       const newOrientation = bounds.orientation === 'horizontal' ? 'vertical' : 'horizontal';
       if (canPlaceShip(prev.playerBoard.cells, ship, bounds.x, bounds.y, newOrientation, shipId)) {
         const playerBoard = placeShipOnBoard(prev.playerBoard, ship, bounds.x, bounds.y, newOrientation);
-        const allPlaced = playerBoard.ships.length === SHIPS.length;
+        const allPlaced = playerBoard.ships.length === prev.shipSet.length;
         return {
           ...prev,
           playerBoard,
@@ -149,11 +176,11 @@ export function useGame() {
     (shipId: string, x: number, y: number, orientation: 'horizontal' | 'vertical') => {
       setGame((prev) => {
         if (prev.phase !== 'setup') return prev;
-        const ship = SHIPS.find((s) => s.id === shipId);
+        const ship = prev.shipSet.find((s) => s.id === shipId);
         if (!ship) return prev;
         if (canPlaceShip(prev.playerBoard.cells, ship, x, y, orientation, shipId)) {
           const playerBoard = placeShipOnBoard(prev.playerBoard, ship, x, y, orientation);
-          const allPlaced = playerBoard.ships.length === SHIPS.length;
+          const allPlaced = playerBoard.ships.length === prev.shipSet.length;
           const history = prev.placementHistory.includes(shipId)
             ? prev.placementHistory.filter((id) => id !== shipId).concat(shipId)
             : [...prev.placementHistory, shipId];
@@ -190,8 +217,8 @@ export function useGame() {
       if (prev.phase !== 'setup') return prev;
       return {
         ...prev,
-        playerBoard: placeShips(SHIPS),
-        placementHistory: SHIPS.map((s) => s.id),
+        playerBoard: placeShips(prev.shipSet, prev.playerBoard.cells.length),
+        placementHistory: prev.shipSet.map((s) => s.id),
         status: 'Fleet ready. Press Start Battle.',
       };
     });
@@ -199,13 +226,13 @@ export function useGame() {
 
   const beginBattle = useCallback(() => {
     setGame((prev) => {
-      if (prev.phase !== 'setup' || prev.playerBoard.ships.length !== SHIPS.length) {
+      if (prev.phase !== 'setup' || prev.playerBoard.ships.length !== prev.shipSet.length) {
         return { ...prev, status: 'Place all ships first, Admiral.' };
       }
       return {
         ...prev,
         phase: 'playing',
-        enemyBoard: placeShips(SHIPS),
+        enemyBoard: placeShips(prev.shipSet, prev.playerBoard.cells.length),
         status: `${prev.admiralName}'s turn — fire at the enemy fleet.`,
       };
     });
@@ -365,7 +392,7 @@ export function useGame() {
 
     const timer = setTimeout(() => {
       setGame((prev) => {
-        const { shot, memory: memoryAfterChoose } = chooseAiShot(prev.playerBoard, prev.aiMemory);
+        const { shot, memory: memoryAfterChoose } = chooseAiShot(prev.playerBoard, prev.aiMemory, prev.difficulty);
         const { board: newPlayerBoard, result } = fireAt(prev.playerBoard, shot.x, shot.y);
         const newAiMemory = updateAiMemory(memoryAfterChoose, shot, result);
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { useGame } from './hooks/useGame';
 import { feedback } from './lib/feedback';
-import { SHIPS } from './lib/constants';
+import { type Difficulty } from './lib/constants';
 import { canPlaceShip, getShipBounds } from './lib/gameLogic';
 import { Board } from './components/Board';
 import { FleetPanel } from './components/FleetPanel';
@@ -19,6 +19,7 @@ import { TutorialOverlay } from './components/TutorialOverlay';
 import { HintBanner } from './components/HintBanner';
 import { StatusBar } from './components/StatusBar';
 import { NameEntry } from './components/NameEntry';
+import { DifficultySelector } from './components/DifficultySelector';
 import { CommanderChat } from './components/CommanderChat';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
     dismissHint,
   } = useGame();
   const [showIntro, setShowIntro] = useState(true);
+  const [showDifficultySelect, setShowDifficultySelect] = useState(false);
   const [selectedShip, setSelectedShip] = useState<string | null>(null);
   const [selectedOrientation, setSelectedOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
   const [showBattleOverlay, setShowBattleOverlay] = useState(false);
@@ -47,7 +49,7 @@ function App() {
 
   const handleRotateSelectedShip = useCallback(() => {
     if (!selectedShip) return;
-    const ship = SHIPS.find((s) => s.id === selectedShip);
+    const ship = game.shipSet.find((s) => s.id === selectedShip);
     if (!ship) return;
     const bounds = getShipBounds(game.playerBoard, selectedShip);
     if (bounds) {
@@ -59,7 +61,7 @@ function App() {
       return;
     }
     setSelectedOrientation((prev) => (prev === 'horizontal' ? 'vertical' : 'horizontal'));
-  }, [selectedShip, game.playerBoard, rotateShip]);
+  }, [selectedShip, game.playerBoard, game.shipSet, rotateShip]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -71,6 +73,7 @@ function App() {
         case 'n':
           e.preventDefault();
           startGame();
+          setShowDifficultySelect(true);
           break;
         case 'u':
           if (game.phase === 'setup') {
@@ -105,7 +108,7 @@ function App() {
   const enemySinkingShip = game.sinkingShip?.side === 'ai' ? game.sinkingShip : null;
   const chatMessages = game.chat.filter((m) => m.type !== 'intro');
 
-  const unplacedShips = SHIPS.filter(
+  const unplacedShips = game.shipSet.filter(
     (ship) => !game.playerBoard.ships.some((placed) => placed.id === ship.id)
   );
 
@@ -116,7 +119,7 @@ function App() {
 
   const handleSetupCellClick = (x: number, y: number) => {
     const cellShipId = game.playerBoard.cells[y]?.[x]?.shipId;
-    const ship = selectedShip ? SHIPS.find((s) => s.id === selectedShip) : null;
+    const ship = selectedShip ? game.shipSet.find((s) => s.id === selectedShip) : null;
 
     if (selectedShip && cellShipId === selectedShip && ship) {
       const bounds = getShipBounds(game.playerBoard, selectedShip);
@@ -171,18 +174,36 @@ function App() {
     setFleetZoomed(false);
     setShowHint(false);
     startGame();
+    setShowDifficultySelect(true);
   };
+
+  const handleDifficultySelect = useCallback(
+    (difficulty: Difficulty) => {
+      startGame(difficulty);
+      setShowDifficultySelect(false);
+    },
+    [startGame]
+  );
 
   const handleIntroDone = () => {
     setShowIntro(false);
-    if (!showNameEntry && !seenTutorial) setShowTutorial(true);
+    if (showNameEntry) return;
+    if (!seenTutorial) {
+      setShowTutorial(true);
+    } else {
+      setShowDifficultySelect(true);
+    }
   };
 
   const handleNameSet = useCallback(
     (name: string) => {
       setAdmiralName(name);
       setShowNameEntry(false);
-      if (!seenTutorial) setShowTutorial(true);
+      if (!seenTutorial) {
+        setShowTutorial(true);
+      } else {
+        setShowDifficultySelect(true);
+      }
     },
     [setAdmiralName, seenTutorial]
   );
@@ -191,12 +212,14 @@ function App() {
     setSeenTutorial(true);
     localStorage.setItem('battleShipz-seen-tutorial', '1');
     setShowTutorial(false);
+    setShowDifficultySelect(true);
   };
 
   const handleTutorialSkip = () => {
     setSeenTutorial(true);
     localStorage.setItem('battleShipz-seen-tutorial', '1');
     setShowTutorial(false);
+    setShowDifficultySelect(true);
   };
 
   const handleDismissHint = () => {
@@ -212,6 +235,7 @@ function App() {
     <div className="safe-area flex flex-col min-h-screen min-h-[100dvh] pb-32">
       {showIntro && <Intro onDone={handleIntroDone} />}
       {!showIntro && showNameEntry && <NameEntry defaultName={game.admiralName} onDone={handleNameSet} />}
+      {showDifficultySelect && <DifficultySelector onSelect={handleDifficultySelect} />}
 
       <StatusPanel playerName={game.admiralName} lastShot={game.lastShot} />
 
@@ -225,7 +249,7 @@ function App() {
                 onUndo={handleUndo}
                 onRotate={selectedShip ? handleRotateSelectedShip : undefined}
                 canUndo={game.placementHistory.length > 0}
-                canStartBattle={game.playerBoard.ships.length === SHIPS.length}
+                canStartBattle={game.playerBoard.ships.length === game.shipSet.length}
                 selectedShip={selectedShip}
               />
             </div>
@@ -236,6 +260,7 @@ function App() {
               <Board
                 board={game.enemyBoard}
                 isPlayerBoard={false}
+                shipTypes={game.shipSet}
                 onCellClick={(x, y) => playerFire(x, y)}
                 disabled={game.turn !== 'player' || game.gameOver}
                 title="Enemy Fleet"
@@ -249,6 +274,7 @@ function App() {
             <Board
               board={game.playerBoard}
               isPlayerBoard
+              shipTypes={game.shipSet}
               onCellClick={handleSetupCellClick}
               onCellDrop={(shipId, orientation, x, y) => {
                 placeShip(shipId, x, y, orientation);
@@ -278,6 +304,7 @@ function App() {
                 <Board
                   board={game.playerBoard}
                   isPlayerBoard
+                  shipTypes={game.shipSet}
                   disabled
                   title="Your Fleet"
                   lastShot={playerLastShot}
@@ -342,6 +369,7 @@ function App() {
             <Board
               board={game.playerBoard}
               isPlayerBoard
+              shipTypes={game.shipSet}
               disabled
               title="Your Fleet"
               lastShot={playerLastShot}

@@ -1,4 +1,5 @@
-import type { ShipType } from './types';
+import type { Difficulty, ShipType } from './types';
+export type { Difficulty } from './types';
 
 export const BOARD_SIZE = 10;
 
@@ -9,6 +10,38 @@ export const SHIPS: ShipType[] = [
   { id: 'submarine', name: 'Submarine', length: 3 },
   { id: 'destroyer', name: 'Destroyer', length: 2 },
 ];
+
+export type DifficultyConfig = {
+  boardSize: number;
+  shipSet: ShipType[];
+  ai: Difficulty;
+  label: string;
+  description: string;
+};
+
+export const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
+  easy: {
+    boardSize: 8,
+    shipSet: SHIPS,
+    ai: 'easy',
+    label: 'Easy',
+    description: '8×8 sea. The enemy fires wildly at random.',
+  },
+  medium: {
+    boardSize: 10,
+    shipSet: SHIPS,
+    ai: 'medium',
+    label: 'Medium',
+    description: '10×10 sea. The enemy hunts its hits.',
+  },
+  hard: {
+    boardSize: 12,
+    shipSet: SHIPS,
+    ai: 'hard',
+    label: 'Hard',
+    description: '12×12 sea. The enemy uses parity and focused hunt.',
+  },
+};
 
 export const AI_COMMANDER = 'Admiral Intelligence (AI)';
 export const DEFAULT_PLAYER_COMMANDER = 'Admiral';

@@ -1,14 +1,14 @@
 import { BOARD_SIZE, SHIPS } from './constants';
 import type { Board, Cell, Position, ShipStatus, ShipType, ShotResult } from './types';
 
-export function createEmptyCells(): Cell[][] {
-  return Array.from({ length: BOARD_SIZE }, () =>
-    Array.from({ length: BOARD_SIZE }, () => ({ state: 'empty' } as Cell))
+export function createEmptyCells(size = BOARD_SIZE): Cell[][] {
+  return Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => ({ state: 'empty' } as Cell))
   );
 }
 
-export function createEmptyBoard(): Board {
-  return { cells: createEmptyCells(), ships: [] };
+export function createEmptyBoard(size = BOARD_SIZE): Board {
+  return { cells: createEmptyCells(size), ships: [] };
 }
 
 export function canPlaceShip(
@@ -19,11 +19,12 @@ export function canPlaceShip(
   orientation: 'horizontal' | 'vertical',
   ignoreShipId?: string
 ): boolean {
+  const size = cells.length;
   for (let i = 0; i < ship.length; i++) {
     const cx = orientation === 'horizontal' ? x + i : x;
     const cy = orientation === 'horizontal' ? y : y + i;
 
-    if (cx < 0 || cx >= BOARD_SIZE || cy < 0 || cy >= BOARD_SIZE) {
+    if (cx < 0 || cx >= size || cy < 0 || cy >= size) {
       return false;
     }
 
@@ -79,10 +80,10 @@ export function placeShipOnBoard(
   return newBoard;
 }
 
-export function placeShips(ships: ShipType[] = SHIPS): Board {
+export function placeShips(ships: ShipType[] = SHIPS, size = BOARD_SIZE): Board {
   let attempts = 0;
   while (attempts < 1000) {
-    const cells = createEmptyCells();
+    const cells = createEmptyCells(size);
     const placedShips: ShipStatus[] = [];
     let success = true;
 
@@ -91,8 +92,8 @@ export function placeShips(ships: ShipType[] = SHIPS): Board {
       let inner = 0;
       while (inner < 1000) {
         const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-        const maxX = orientation === 'horizontal' ? BOARD_SIZE - ship.length : BOARD_SIZE;
-        const maxY = orientation === 'horizontal' ? BOARD_SIZE : BOARD_SIZE - ship.length;
+        const maxX = orientation === 'horizontal' ? size - ship.length : size;
+        const maxY = orientation === 'horizontal' ? size : size - ship.length;
         const x = Math.floor(Math.random() * maxX);
         const y = Math.floor(Math.random() * maxY);
 
@@ -129,8 +130,9 @@ export function getShipBounds(
   shipId: string
 ): { x: number; y: number; length: number; orientation: 'horizontal' | 'vertical' } | null {
   const positions: Position[] = [];
-  for (let y = 0; y < BOARD_SIZE; y++) {
-    for (let x = 0; x < BOARD_SIZE; x++) {
+  const size = board.cells.length;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
       if (board.cells[y][x].shipId === shipId) {
         positions.push({ x, y });
       }
@@ -154,7 +156,8 @@ export function allShipsSunk(ships: ShipStatus[]): boolean {
 }
 
 export function isValidTarget(board: Board, x: number, y: number): boolean {
-  if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return false;
+  const size = board.cells.length;
+  if (x < 0 || x >= size || y < 0 || y >= size) return false;
   const state = board.cells[y][x].state;
   return state !== 'hit' && state !== 'miss' && state !== 'sunk';
 }
@@ -182,10 +185,11 @@ export function fireAt(board: Board, x: number, y: number): { board: Board; resu
   ship.hits += 1;
   newCells[y][x].state = 'hit';
 
+  const boardSize = newCells.length;
   if (ship.hits === ship.length) {
     ship.sunk = true;
-    for (let row = 0; row < BOARD_SIZE; row++) {
-      for (let col = 0; col < BOARD_SIZE; col++) {
+    for (let row = 0; row < boardSize; row++) {
+      for (let col = 0; col < boardSize; col++) {
         if (newCells[row][col].shipId === ship.id) {
           newCells[row][col].state = 'sunk';
         }
@@ -205,8 +209,9 @@ export function fireAt(board: Board, x: number, y: number): { board: Board; resu
 
 export function getAvailableShots(board: Board): Position[] {
   const positions: Position[] = [];
-  for (let y = 0; y < BOARD_SIZE; y++) {
-    for (let x = 0; x < BOARD_SIZE; x++) {
+  const size = board.cells.length;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
       if (isValidTarget(board, x, y)) {
         positions.push({ x, y });
       }

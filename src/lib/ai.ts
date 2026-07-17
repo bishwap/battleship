@@ -1,4 +1,4 @@
-import { BOARD_SIZE } from './constants';
+import { DIFFICULTY_CONFIGS, type Difficulty } from './constants';
 import { getAvailableShots, isValidTarget } from './gameLogic';
 import type { AiMemory, Board, Position } from './types';
 
@@ -6,17 +6,21 @@ function posKey(p: Position): string {
   return `${p.x},${p.y}`;
 }
 
-function inBounds(p: Position): boolean {
-  return p.x >= 0 && p.x < BOARD_SIZE && p.y >= 0 && p.y < BOARD_SIZE;
+function inBounds(p: Position, size: number): boolean {
+  return p.x >= 0 && p.x < size && p.y >= 0 && p.y < size;
 }
 
-function getNeighbors(p: Position): Position[] {
+function getNeighbors(p: Position, size: number): Position[] {
   return [
     { x: p.x, y: p.y - 1 },
     { x: p.x, y: p.y + 1 },
     { x: p.x - 1, y: p.y },
     { x: p.x + 1, y: p.y },
-  ].filter(inBounds);
+  ].filter((n) => inBounds(n, size));
+}
+
+function getAiDifficulty(difficulty: Difficulty): Difficulty {
+  return DIFFICULTY_CONFIGS[difficulty]?.ai ?? difficulty;
 }
 
 function filterHuntQueue(queue: Position[], board: Board): Position[] {
@@ -29,8 +33,9 @@ function filterHuntQueue(queue: Position[], board: Board): Position[] {
 }
 
 function addNeighborsToQueue(queue: Position[], position: Position, board: Board): Position[] {
+  const size = board.cells.length;
   const next = [...queue];
-  for (const neighbor of getNeighbors(position)) {
+  for (const neighbor of getNeighbors(position, size)) {
     if (isValidTarget(board, neighbor.x, neighbor.y)) {
       next.push(neighbor);
     }
@@ -42,10 +47,21 @@ export function createAiMemory(): AiMemory {
   return { hits: [], huntQueue: [] };
 }
 
-export function chooseAiShot(board: Board, memory: AiMemory): { shot: Position; memory: AiMemory } {
+function smallestUnsunkShip(board: Board): number {
+  return board.ships
+    .filter((s) => !s.sunk)
+    .reduce((min, s) => Math.min(min, s.length), Infinity);
+}
+
+export function chooseAiShot(
+  board: Board,
+  memory: AiMemory,
+  difficulty: Difficulty = 'medium'
+): { shot: Position; memory: AiMemory } {
+  const aiDifficulty = getAiDifficulty(difficulty);
   let huntQueue = filterHuntQueue(memory.huntQueue, board);
 
-  if (huntQueue.length === 0 && memory.hits.length > 0) {
+  if (aiDifficulty !== 'easy' && huntQueue.length === 0 && memory.hits.length > 0) {
     for (const hit of memory.hits) {
       huntQueue = addNeighborsToQueue(huntQueue, hit, board);
     }
@@ -71,7 +87,16 @@ export function chooseAiShot(board: Board, memory: AiMemory): { shot: Position; 
     shot = huntQueue.shift()!;
   } else {
     const available = getAvailableShots(board);
-    shot = available[Math.floor(Math.random() * available.length)];
+    if (aiDifficulty === 'hard') {
+      const smallest = smallestUnsunkShip(board);
+      const parityShots =
+        smallest >= 2
+          ? available.filter((p) => (p.x + p.y) % 2 === 0)
+          : available;
+      shot = parityShots[Math.floor(Math.random() * parityShots.length)] ?? available[0];
+    } else {
+      shot = available[Math.floor(Math.random() * available.length)];
+    }
   }
 
   return { shot, memory: { ...memory, huntQueue } };

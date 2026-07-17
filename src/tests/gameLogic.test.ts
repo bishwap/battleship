@@ -50,6 +50,14 @@ describe('gameLogic', () => {
     expect(board.ships.every((s) => !s.sunk)).toBe(true);
   });
 
+  it('places all ships on a 12x12 hard board', () => {
+    const board = placeShips(undefined, 12);
+    expect(board.cells.length).toBe(12);
+    const shipCells = board.cells.flat().filter((cell) => cell.state === 'ship');
+    const totalShipLength = [5, 4, 3, 3, 2].reduce((a, b) => a + b, 0);
+    expect(shipCells.length).toBe(totalShipLength);
+  });
+
   it('reports a miss', () => {
     const board = createEmptyBoard();
     const { result, board: newBoard } = fireAt(board, 0, 0);
