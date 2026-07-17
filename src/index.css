@@ -25,8 +25,8 @@
   box-sizing: border-box;
 }
 
-button,
-[role='button'] {
+button:not(.touch-pan-y),
+[role='button']:not(.touch-pan-y) {
   touch-action: manipulation;
 }
 
