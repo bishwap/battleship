@@ -20,6 +20,8 @@ export function canPlaceShip(
   ignoreShipId?: string
 ): boolean {
   const size = cells.length;
+  const positions: { x: number; y: number }[] = [];
+
   for (let i = 0; i < ship.length; i++) {
     const cx = orientation === 'horizontal' ? x + i : x;
     const cy = orientation === 'horizontal' ? y : y + i;
@@ -32,7 +34,25 @@ export function canPlaceShip(
     if (cell.state !== 'empty' && cell.shipId !== ignoreShipId) {
       return false;
     }
+    positions.push({ x: cx, y: cy });
   }
+
+  // Standard Battleship rule: ships cannot touch, not even diagonally.
+  for (const { x: cx, y: cy } of positions) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = cx + dx;
+        const ny = cy + dy;
+        if (nx < 0 || nx >= size || ny < 0 || ny >= size) continue;
+        const neighbor = cells[ny][nx];
+        if (neighbor.state === 'ship' && neighbor.shipId !== ignoreShipId) {
+          return false;
+        }
+      }
+    }
+  }
+
   return true;
 }
 

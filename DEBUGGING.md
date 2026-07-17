@@ -50,6 +50,36 @@ Now the banner hides automatically as soon as the player hits or sinks an enemy 
 
 **File changed:** `src/components/Board.tsx` (already merged via PR #9)
 
+## 4. Ships could be placed touching each other
+
+**Symptom:** The strategic hint tells players "ships can't touch," yet the placement logic allowed ships to be placed adjacent or diagonally. This made the hint misleading and allowed invalid boards during both manual placement and randomization.
+
+**Root cause:** `canPlaceShip` in `src/lib/gameLogic.ts` only checked that the ship's own cells were empty (or belonged to the ship being moved). It did not inspect the surrounding cells.
+
+**Fix:** After verifying the ship path, `canPlaceShip` now scans all eight neighboring cells for every cell in the path and rejects the placement if any neighbor contains a ship that is not the one being placed/rotated.
+
+**File changed:** `src/lib/gameLogic.ts`
+
+## 5. Tally board repeated the percent sign
+
+**Symptom:** The tally board showed `Win %` as a label and `0%` as the value, duplicating the percent symbol.
+
+**Root cause:** `src/components/TallyBoard.tsx` used the label `Win %` and then rendered `{winRate}%` as the value.
+
+**Fix:** Changed the label to `Win Rate` so the value `{winRate}%` reads clearly as "Win Rate 0%."
+
+**File changed:** `src/components/TallyBoard.tsx`
+
+## 6. Tutorial card overflowed on small screens
+
+**Symptom:** On short/mobile viewports the tutorial card could extend beyond the screen, and its height changed from step to step because the body text was allowed to shrink.
+
+**Root cause:** `src/components/TutorialOverlay.tsx` set a fixed `min-h-[420px]` without a `max-height`, did not make the content area scrollable, and let the body text collapse to its content size.
+
+**Fix:** Restructured the card so the body area has a stable minimum height, is scrollable, and never exceeds `85dvh`. The step indicators and navigation buttons were moved into a fixed footer so they stay in place while the text scrolls.
+
+**File changed:** `src/components/TutorialOverlay.tsx`
+
 ## Verification
 
 - `npm run lint` – passes
@@ -60,3 +90,6 @@ Now the banner hides automatically as soon as the player hits or sinks an enemy 
   - `r` no longer randomizes the fleet while the difficulty selector or battle-ready overlay is open.
   - The hint banner appears after three misses and disappears on the next hit.
   - No crash when selecting Hard from a default Medium board.
+  - Ship placement (manual, rotate, randomize) respects the no-touching rule.
+  - The tutorial card fits within mobile viewports and the Next/Skip buttons stay visible.
+  - The tally board reads "Win Rate" with the percent next to the number.
