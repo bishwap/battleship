@@ -53,7 +53,7 @@ function cellContent(state: CellState, isPlayerBoard: boolean, firing: boolean) 
 
 function cellClasses(state: CellState, isPlayerBoard: boolean, disabled: boolean, isPreview?: boolean, isValid?: boolean) {
   const base =
-    'board-cell relative overflow-hidden w-full flex items-center justify-center rounded border border-grid/60 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-radar focus-visible:ring-offset-2 focus-visible:ring-offset-ocean active:scale-95 disabled:opacity-60';
+    'board-cell relative overflow-hidden w-full h-full flex items-center justify-center rounded border border-grid/60 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-radar focus-visible:ring-offset-2 focus-visible:ring-offset-ocean active:scale-95 disabled:opacity-60';
   const cursor = disabled ? ' cursor-default' : ' cursor-pointer hover:border-radar hover:brightness-110';
   const preview = isPreview ? (isValid ? ' bg-ship/20 ring-1 ring-ship-glow' : ' bg-hit/20 ring-1 ring-hit-glow') : '';
 

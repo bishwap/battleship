@@ -193,12 +193,12 @@ export function Board({
   return (
     <div className={`flex flex-col items-center w-full max-w-[65vh] mx-auto rounded-lg p-2 sm:p-4 ${themeClass}`}>
       <h3 className={`text-sm sm:text-base font-bold tracking-wider mb-2 sm:mb-3 uppercase ${titleClass}`}>{title}</h3>
-      <div className="w-full">
+      <div className="relative w-full" style={{ paddingBottom: '100%' }}>
         <div
-          className="grid w-full min-w-0 gap-1 sm:gap-1.5"
+          className="absolute inset-0 grid w-full h-full min-w-0 gap-1 sm:gap-1.5"
           style={{
-            gridTemplateColumns: 'auto repeat(10, minmax(24px, 1fr))',
-            gridTemplateRows: 'auto repeat(10, auto)',
+            gridTemplateColumns: 'repeat(11, minmax(0, 1fr))',
+            gridTemplateRows: 'repeat(11, minmax(0, 1fr))',
           }}
           onMouseLeave={() => setHoverCell(null)}
         >
