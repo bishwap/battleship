@@ -32,6 +32,7 @@ export function ShipTray({ ships, selectedShipId, onSelectShip, className = '' }
     const orientation = orientations[ship.id] || 'horizontal';
     e.dataTransfer.setData('text/plain', JSON.stringify({ shipId: ship.id, orientation }));
     e.dataTransfer.effectAllowed = 'move';
+    handleSelect(ship);
   };
 
   return (

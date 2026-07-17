@@ -10,6 +10,7 @@ type BoardProps = {
   isPlayerBoard: boolean;
   onCellClick?: (x: number, y: number) => void;
   onCellDrop?: (shipId: string, orientation: 'horizontal' | 'vertical', x: number, y: number) => void;
+  onSelectShip?: (shipId: string, orientation: 'horizontal' | 'vertical') => void;
   disabled: boolean;
   lastShot: Position | null;
   title: string;
@@ -25,6 +26,7 @@ export function Board({
   isPlayerBoard,
   onCellClick,
   onCellDrop,
+  onSelectShip,
   disabled,
   lastShot,
   title,
@@ -35,6 +37,7 @@ export function Board({
   const isInteractive = !disabled && !!onCellClick;
   const [activeCell, setActiveCell] = useState<{ x: number; y: number } | null>(null);
   const [hoverCell, setHoverCell] = useState<{ x: number; y: number } | null>(null);
+  const draggingRef = useRef(false);
   const cellRefs = useRef<(HTMLButtonElement | null)[][]>(
     Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null))
   );
@@ -73,6 +76,11 @@ export function Board({
     const valid = canPlaceShip(board.cells, ship, previewCell.x, previewCell.y, selectedOrientation, selectedShip);
     return { positions, valid };
   })();
+
+  const handleCellClick = (x: number, y: number) => {
+    if (draggingRef.current) return;
+    onCellClick?.(x, y);
+  };
 
   const handleCellKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -224,6 +232,7 @@ export function Board({
         {board.cells.map((row, y) =>
           row.map((cell, x) => {
             const cellDisabled = disabled || !onCellClick || cell.state === 'hit' || cell.state === 'miss' || cell.state === 'sunk';
+            const shipMeta = cell.shipId ? shipData.get(cell.shipId) : null;
             return (
             <Cell
               key={`cell-${x}-${y}`}
@@ -234,12 +243,14 @@ export function Board({
               isPlayerBoard={isPlayerBoard}
               isLastShot={lastShot?.x === x && lastShot?.y === y}
               disabled={cellDisabled}
+              isSelected={isPlayerBoard && cell.shipId === selectedShip}
               label={`${ROW_LABELS[y]}${x + 1} ${isPlayerBoard || cell.state !== 'ship' ? cell.state : 'empty'}`}
               tabIndex={activeCell?.x === x && activeCell?.y === y && !cellDisabled ? 0 : -1}
-              onClick={() => onCellClick && onCellClick(x, y)}
+              onClick={() => handleCellClick(x, y)}
               onFocus={() => setActiveCell({ x, y })}
               onKeyDown={(e) => handleCellKeyDown(e, x, y)}
               onMouseEnter={() => setHoverCell({ x, y })}
+              onDragEnter={() => setHoverCell({ x, y })}
               isPreview={preview?.positions.some((p) => p.x === x && p.y === y) ?? false}
               isValid={preview?.valid ?? false}
               onDrop={
@@ -255,9 +266,32 @@ export function Board({
                       } catch {
                         // ignore bad drag data
                       }
+                      setTimeout(() => {
+                        draggingRef.current = false;
+                        setHoverCell(null);
+                      }, 0);
                     }
                   : undefined
               }
+              onDragStart={
+                isPlayerBoard && isInteractive && cell.shipId && shipMeta
+                  ? (e) => {
+                      e.dataTransfer.setData(
+                        'text/plain',
+                        JSON.stringify({ shipId: cell.shipId, orientation: shipMeta.orientation })
+                      );
+                      e.dataTransfer.effectAllowed = 'move';
+                      draggingRef.current = true;
+                      onSelectShip?.(cell.shipId!, shipMeta.orientation);
+                    }
+                  : undefined
+              }
+              onDragEnd={() => {
+                setTimeout(() => {
+                  draggingRef.current = false;
+                  setHoverCell(null);
+                }, 0);
+              }}
               style={{ gridColumn: `${x + 2} / ${x + 3}`, gridRow: `${y + 2} / ${y + 3}` }}
             />
           )})

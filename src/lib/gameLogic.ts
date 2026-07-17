@@ -124,6 +124,31 @@ export function getShip(board: Board, shipId: string): ShipStatus | undefined {
   return board.ships.find((s) => s.id === shipId);
 }
 
+export function getShipBounds(
+  board: Board,
+  shipId: string
+): { x: number; y: number; length: number; orientation: 'horizontal' | 'vertical' } | null {
+  const positions: Position[] = [];
+  for (let y = 0; y < BOARD_SIZE; y++) {
+    for (let x = 0; x < BOARD_SIZE; x++) {
+      if (board.cells[y][x].shipId === shipId) {
+        positions.push({ x, y });
+      }
+    }
+  }
+  if (positions.length === 0) return null;
+  const minX = Math.min(...positions.map((p) => p.x));
+  const maxX = Math.max(...positions.map((p) => p.x));
+  const minY = Math.min(...positions.map((p) => p.y));
+  const orientation = maxX > minX ? 'horizontal' : 'vertical';
+  return { x: minX, y: minY, length: positions.length, orientation };
+}
+
+export function getShipOrientation(board: Board, shipId: string): 'horizontal' | 'vertical' {
+  const bounds = getShipBounds(board, shipId);
+  return bounds?.orientation ?? 'horizontal';
+}
+
 export function allShipsSunk(ships: ShipStatus[]): boolean {
   return ships.length > 0 && ships.every((s) => s.sunk);
 }

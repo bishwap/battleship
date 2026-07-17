@@ -8,7 +8,7 @@ import { PwaProvider } from './contexts/PwaProvider.tsx'
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/battleship/sw.js', { scope: '/battleship/' })
+      .register('/battleship/sw.js?v=3', { scope: '/battleship/' })
       .then(() => console.log('Service worker registered'))
       .catch((err) => console.error('Service worker registration failed:', err));
   });
