@@ -53,7 +53,7 @@ export function StatusPanel({ status, turn, gameOver, winner, playerName, lastSh
 
         <div className="flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-accent mb-1">
-            Battleshipz
+            BattleShipz
           </h1>
           <div
             role="status"

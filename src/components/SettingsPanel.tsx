@@ -1,7 +1,11 @@
 import { useSettings } from '../hooks/useSettings';
 import { usePwa } from '../hooks/usePwa';
 
-export function SettingsPanel() {
+type SettingsPanelProps = {
+  onOpenTutorial?: () => void;
+};
+
+export function SettingsPanel({ onOpenTutorial }: SettingsPanelProps) {
   const { settings, setSound, setHaptics, setReducedMotion } = useSettings();
   const { isInstalled, prompt, isIos } = usePwa();
 
@@ -53,13 +57,23 @@ export function SettingsPanel() {
             onClick={handleInstall}
             className="w-full min-h-[44px] px-4 py-2 rounded-lg border border-radar/50 bg-radar/10 text-radar-glow hover:bg-radar/20 transition-colors"
           >
-            Install Battleshipz
+            Install BattleShipz
           </button>
         ) : isIos ? (
           <p className="text-xs text-muted">
             To install on iOS: tap Share, then Add to Home Screen.
           </p>
         ) : null}
+
+        {onOpenTutorial && (
+          <button
+            type="button"
+            onClick={onOpenTutorial}
+            className="w-full min-h-[44px] px-4 py-2 rounded-lg border border-ship/50 bg-ship/10 text-ship-glow hover:bg-ship/20 transition-colors"
+          >
+            How to Play
+          </button>
+        )}
       </div>
     </div>
   );

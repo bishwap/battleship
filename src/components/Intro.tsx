@@ -17,9 +17,8 @@ export function Intro({ onDone }: IntroProps) {
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-ocean animate-fade-out cursor-pointer"
     >
       <h1 className="text-5xl sm:text-7xl font-black tracking-widest text-accent uppercase animate-pulse">
-        Battleshipz
+        BattleShipz
       </h1>
-      <p className="text-muted text-sm sm:text-base mt-4 animate-pulse">Click or wait to start</p>
     </button>
   );
 }

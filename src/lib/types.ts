@@ -49,6 +49,13 @@ export type SinkingShip = {
   shipId: string;
 };
 
+export type SideStats = {
+  shots: number;
+  hits: number;
+  misses: number;
+  sunk: number;
+};
+
 export type GameState = {
   phase: 'setup' | 'playing';
   playerBoard: Board;
@@ -65,4 +72,6 @@ export type GameState = {
   admiralName: string;
   tally: { wins: number; losses: number };
   placementHistory: string[];
+  stats: { player: SideStats; ai: SideStats };
+  consecutiveMisses: number;
 };

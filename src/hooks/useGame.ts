@@ -76,6 +76,8 @@ function createInitialGame(): GameState {
     admiralName,
     tally: loadTally(),
     placementHistory: [],
+    stats: { player: { shots: 0, hits: 0, misses: 0, sunk: 0 }, ai: { shots: 0, hits: 0, misses: 0, sunk: 0 } },
+    consecutiveMisses: 0,
   };
 }
 
@@ -101,6 +103,8 @@ export function useGame() {
       lastShot: null,
       sinkingShip: null,
       placementHistory: [],
+      stats: { player: { shots: 0, hits: 0, misses: 0, sunk: 0 }, ai: { shots: 0, hits: 0, misses: 0, sunk: 0 } },
+      consecutiveMisses: 0,
     }));
   }, []);
 
@@ -223,6 +227,10 @@ export function useGame() {
     });
   }, []);
 
+  const dismissHint = useCallback(() => {
+    setGame((prev) => ({ ...prev, consecutiveMisses: 0 }));
+  }, []);
+
   const playerFire = useCallback((x: number, y: number) => {
     setGame((prev) => {
       if (prev.phase !== 'playing' || prev.gameOver || prev.turn !== 'player') return prev;
@@ -242,6 +250,15 @@ export function useGame() {
           status,
           shakeSide: null,
           lastShot: { x, y, side: 'player' as const, result: result.type },
+          stats: {
+            ...prev.stats,
+            player: {
+              ...prev.stats.player,
+              shots: prev.stats.player.shots + 1,
+              misses: prev.stats.player.misses + 1,
+            },
+          },
+          consecutiveMisses: prev.consecutiveMisses + 1,
         };
       }
 
@@ -260,6 +277,15 @@ export function useGame() {
             chat,
             status: 'Victory! All enemy ships destroyed.',
             lastShot: { x, y, side: 'player' as const, result: result.type },
+            stats: {
+              ...prev.stats,
+              player: {
+                ...prev.stats.player,
+                shots: prev.stats.player.shots + 1,
+                hits: prev.stats.player.hits + 1,
+              },
+            },
+            consecutiveMisses: 0,
           };
         }
         return {
@@ -269,6 +295,15 @@ export function useGame() {
           status: `Hit! Fire again, ${PLAYER_COMMANDER}.`,
           shakeSide: 'ai' as const,
           lastShot: { x, y, side: 'player' as const, result: result.type },
+          stats: {
+            ...prev.stats,
+            player: {
+              ...prev.stats.player,
+              shots: prev.stats.player.shots + 1,
+              hits: prev.stats.player.hits + 1,
+            },
+          },
+          consecutiveMisses: 0,
         };
       }
 
@@ -288,6 +323,16 @@ export function useGame() {
             status: 'Victory! All enemy ships destroyed.',
             lastShot: { x, y, side: 'player' as const, result: result.type },
             sinkingShip,
+            stats: {
+              ...prev.stats,
+              player: {
+                ...prev.stats.player,
+                shots: prev.stats.player.shots + 1,
+                hits: prev.stats.player.hits + 1,
+                sunk: prev.stats.player.sunk + 1,
+              },
+            },
+            consecutiveMisses: 0,
           };
         }
         return {
@@ -298,6 +343,16 @@ export function useGame() {
           shakeSide: 'ai' as const,
           lastShot: { x, y, side: 'player' as const, result: result.type },
           sinkingShip,
+          stats: {
+            ...prev.stats,
+            player: {
+              ...prev.stats.player,
+              shots: prev.stats.player.shots + 1,
+              hits: prev.stats.player.hits + 1,
+              sunk: prev.stats.player.sunk + 1,
+            },
+          },
+          consecutiveMisses: 0,
         };
       }
 
@@ -327,6 +382,14 @@ export function useGame() {
             status: `${PLAYER_COMMANDER}'s turn — fire at the enemy fleet.`,
             shakeSide: null,
             lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
+            stats: {
+              ...prev.stats,
+              ai: {
+                ...prev.stats.ai,
+                shots: prev.stats.ai.shots + 1,
+                misses: prev.stats.ai.misses + 1,
+              },
+            },
           };
         }
 
@@ -346,6 +409,14 @@ export function useGame() {
               chat,
               status: 'Defeat. Your fleet has been destroyed.',
               lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
+              stats: {
+                ...prev.stats,
+                ai: {
+                  ...prev.stats.ai,
+                  shots: prev.stats.ai.shots + 1,
+                  hits: prev.stats.ai.hits + 1,
+                },
+              },
             };
           }
           return {
@@ -356,6 +427,14 @@ export function useGame() {
             status: `${AI_COMMANDER} hit your ship. Re-engaging...`,
             shakeSide: 'player' as const,
             lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
+            stats: {
+              ...prev.stats,
+              ai: {
+                ...prev.stats.ai,
+                shots: prev.stats.ai.shots + 1,
+                hits: prev.stats.ai.hits + 1,
+              },
+            },
           };
         }
 
@@ -376,6 +455,15 @@ export function useGame() {
               status: 'Defeat. Your fleet has been destroyed.',
               lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
               sinkingShip,
+              stats: {
+                ...prev.stats,
+                ai: {
+                  ...prev.stats.ai,
+                  shots: prev.stats.ai.shots + 1,
+                  hits: prev.stats.ai.hits + 1,
+                  sunk: prev.stats.ai.sunk + 1,
+                },
+              },
             };
           }
           return {
@@ -387,6 +475,15 @@ export function useGame() {
             shakeSide: 'player' as const,
             lastShot: { x: shot.x, y: shot.y, side: 'ai' as const, result: result.type },
             sinkingShip,
+            stats: {
+              ...prev.stats,
+              ai: {
+                ...prev.stats.ai,
+                shots: prev.stats.ai.shots + 1,
+                hits: prev.stats.ai.hits + 1,
+                sunk: prev.stats.ai.sunk + 1,
+              },
+            },
           };
         }
 
@@ -452,5 +549,6 @@ export function useGame() {
     randomizePlacement,
     undoLastPlacement,
     beginBattle,
+    dismissHint,
   };
 }

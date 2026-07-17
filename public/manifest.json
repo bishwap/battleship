@@ -1,6 +1,6 @@
 {
-  "name": "Battleshipz",
-  "short_name": "Battleshipz",
+  "name": "BattleShipz",
+  "short_name": "BattleShipz",
   "description": "A cross-device, tactical naval battle game.",
   "start_url": "/battleship/",
   "scope": "/battleship/",

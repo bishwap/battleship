@@ -44,7 +44,7 @@ function cellContent(state: CellState, isPlayerBoard: boolean, firing: boolean) 
       if (isPlayerBoard) {
         return <PlayerSkullIcon className="pointer-events-none w-3/5 h-3/5 text-sunk-glow drop-shadow animate-sink" />;
       }
-      return <EnemyTrophyIcon className="pointer-events-none w-3/5 h-3/5 text-ship-glow drop-shadow animate-sink" />;
+      return <EnemyTrophyIcon className="pointer-events-none w-3/5 h-3/5 text-ship-glow drop-shadow" />;
     case 'ship':
       if (isPlayerBoard) {
         return null;
