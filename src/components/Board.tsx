@@ -45,8 +45,11 @@ export function Board({
   );
 
   useEffect(() => {
-    cellRefs.current = Array.from({ length: size }, () => Array(size).fill(null));
     if (isInteractive) setActiveCell({ x: 0, y: 0 });
+  }, [isInteractive]);
+
+  useEffect(() => {
+    setActiveCell((prev) => (prev && prev.x < size && prev.y < size ? prev : isInteractive ? { x: 0, y: 0 } : null));
   }, [size, isInteractive]);
 
   useEffect(() => {
@@ -244,6 +247,7 @@ export function Board({
             <Cell
               key={`cell-${x}-${y}`}
               ref={(el) => {
+                if (!cellRefs.current[y]) cellRefs.current[y] = [];
                 cellRefs.current[y][x] = el;
               }}
               state={cell.state}
