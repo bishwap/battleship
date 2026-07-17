@@ -170,6 +170,7 @@ function App() {
   const handleNewGame = () => {
     setSelectedShip(null);
     setFleetZoomed(false);
+    setShowHint(false);
     startGame();
   };
 
