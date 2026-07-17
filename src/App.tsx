@@ -19,6 +19,7 @@ import { TutorialOverlay } from './components/TutorialOverlay';
 import { HintBanner } from './components/HintBanner';
 import { StatusBar } from './components/StatusBar';
 import { NameEntry } from './components/NameEntry';
+import { CommanderChat } from './components/CommanderChat';
 
 function App() {
   const {
@@ -102,7 +103,7 @@ function App() {
   const enemyLastShot = game.lastShot?.side === 'player' ? game.lastShot : null;
   const playerSinkingShip = game.sinkingShip?.side === 'player' ? game.sinkingShip : null;
   const enemySinkingShip = game.sinkingShip?.side === 'ai' ? game.sinkingShip : null;
-  const lastChatMessage = game.chat.filter((m) => m.type !== 'intro').at(-1);
+  const chatMessages = game.chat.filter((m) => m.type !== 'intro');
 
   const unplacedShips = SHIPS.filter(
     (ship) => !game.playerBoard.ships.some((placed) => placed.id === ship.id)
@@ -212,11 +213,7 @@ function App() {
       {showIntro && <Intro onDone={handleIntroDone} />}
       {!showIntro && showNameEntry && <NameEntry defaultName={game.admiralName} onDone={handleNameSet} />}
 
-      <StatusPanel
-        playerName={game.admiralName}
-        lastShot={game.lastShot}
-        lastChatMessage={lastChatMessage}
-      />
+      <StatusPanel playerName={game.admiralName} lastShot={game.lastShot} />
 
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 max-w-[1400px] mx-auto w-full">
         <section className="lg:col-span-8 flex flex-col gap-4 sm:gap-6">
@@ -276,27 +273,31 @@ function App() {
 
         <aside className="lg:col-span-4 flex flex-col gap-4 h-full">
           {game.phase === 'playing' && (
-            <div className="relative w-full mx-auto cursor-zoom-in" title="Click to zoom in on Your Fleet">
-              <Board
-                board={game.playerBoard}
-                isPlayerBoard
-                disabled
-                title="Your Fleet"
-                lastShot={playerLastShot}
-                sinkingShip={playerSinkingShip}
-              />
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label="Zoom in on Your Fleet"
-                className="absolute inset-0 rounded-lg"
-                onClick={() => setFleetZoomed(true)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setFleetZoomed(true); }}
-              />
+            <div className={game.shakeSide === 'player' ? 'animate-shake' : ''}>
+              <div className="relative w-full mx-auto cursor-zoom-in" title="Click to zoom in on Your Fleet">
+                <Board
+                  board={game.playerBoard}
+                  isPlayerBoard
+                  disabled
+                  title="Your Fleet"
+                  lastShot={playerLastShot}
+                  sinkingShip={playerSinkingShip}
+                />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Zoom in on Your Fleet"
+                  className="absolute inset-0 rounded-lg"
+                  onClick={() => setFleetZoomed(true)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setFleetZoomed(true); }}
+                />
+              </div>
             </div>
           )}
           <TallyBoard name={game.admiralName} tally={game.tally} />
-          <SettingsPanel onOpenTutorial={() => setShowTutorial(true)} />
+          {game.phase === 'playing' && (
+            <CommanderChat messages={chatMessages} />
+          )}
           {game.phase === 'playing' && (
             <>
               <FleetPanel ships={game.enemyBoard.ships} label="Enemy Fleet Status" />
@@ -315,6 +316,7 @@ function App() {
               )}
             </>
           )}
+          <SettingsPanel onOpenTutorial={() => setShowTutorial(true)} />
         </aside>
       </main>
 

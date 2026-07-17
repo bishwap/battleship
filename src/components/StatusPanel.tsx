@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AI_COMMANDER } from '../lib/constants';
-import type { ChatMessage } from '../lib/types';
 import { Ship } from './Ship';
-import { SpeechBubble } from './SpeechBubble';
 
 type LastShot = {
   x: number;
@@ -14,10 +12,9 @@ type LastShot = {
 type StatusPanelProps = {
   playerName: string;
   lastShot?: LastShot;
-  lastChatMessage?: ChatMessage;
 };
 
-export function StatusPanel({ playerName, lastShot, lastChatMessage }: StatusPanelProps) {
+export function StatusPanel({ playerName, lastShot }: StatusPanelProps) {
   const [firing, setFiring] = useState<{ key: number; side: 'player' | 'ai' } | null>(null);
 
   useEffect(() => {
@@ -60,12 +57,6 @@ export function StatusPanel({ playerName, lastShot, lastChatMessage }: StatusPan
           </div>
         </div>
       </div>
-
-      {lastChatMessage && (
-        <div className="pointer-events-auto">
-          <SpeechBubble message={lastChatMessage} playerName={playerName} />
-        </div>
-      )}
     </header>
   );
 }
