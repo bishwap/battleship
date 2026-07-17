@@ -68,6 +68,9 @@ function App() {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (showIntro || showNameEntry || showTutorial || showDifficultySelect || showBattleOverlay || fleetZoomed || game.gameOver) {
+        return;
+      }
 
       switch (e.key.toLowerCase()) {
         case 'n':
@@ -100,7 +103,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [game.phase, selectedShip, startGame, undoLastPlacement, randomizePlacement, handleRotateSelectedShip, setSound, settings.sound]);
+  }, [game.phase, game.gameOver, selectedShip, startGame, undoLastPlacement, randomizePlacement, handleRotateSelectedShip, setSound, settings.sound, showIntro, showNameEntry, showTutorial, showDifficultySelect, showBattleOverlay, fleetZoomed]);
 
   const playerLastShot = game.lastShot?.side === 'ai' ? game.lastShot : null;
   const enemyLastShot = game.lastShot?.side === 'player' ? game.lastShot : null;
@@ -228,7 +231,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (game.consecutiveMisses >= 3) setShowHint(true);
+    setShowHint(game.consecutiveMisses >= 3);
   }, [game.consecutiveMisses]);
 
   return (
