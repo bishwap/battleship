@@ -1,4 +1,4 @@
-# Battleshipz
+# BattleShipz
 
 A public, browser-playable Battleship game against an AI opponent. Built with React 19, TypeScript, Vite, Tailwind CSS, and Vitest.
 

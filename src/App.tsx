@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { useGame } from './hooks/useGame';
+import { feedback } from './lib/feedback';
 import { SHIPS } from './lib/constants';
 import { canPlaceShip, getShipBounds } from './lib/gameLogic';
 import { Board } from './components/Board';
@@ -15,6 +16,8 @@ import { SetupControls } from './components/SetupControls';
 import { BattleReadyOverlay } from './components/BattleReadyOverlay';
 import { TallyBoard } from './components/TallyBoard';
 import { SettingsPanel } from './components/SettingsPanel';
+import { TutorialOverlay } from './components/TutorialOverlay';
+import { HintOverlay } from './components/HintOverlay';
 
 function App() {
   const {
@@ -27,11 +30,16 @@ function App() {
     randomizePlacement,
     undoLastPlacement,
     beginBattle,
+    dismissHint,
   } = useGame();
   const [showIntro, setShowIntro] = useState(true);
   const [selectedShip, setSelectedShip] = useState<string | null>(null);
   const [selectedOrientation, setSelectedOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
   const [showBattleOverlay, setShowBattleOverlay] = useState(false);
+  const [seenTutorial, setSeenTutorial] = useState(() => !!localStorage.getItem('battleShipz-seen-tutorial'));
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [fleetZoomed, setFleetZoomed] = useState(false);
+  const [showHint, setShowHint] = useState(false);
   const { settings, setSound } = useSettings();
 
   const handleRotateSelectedShip = useCallback(() => {
@@ -50,10 +58,7 @@ function App() {
     setSelectedOrientation((prev) => (prev === 'horizontal' ? 'vertical' : 'horizontal'));
   }, [selectedShip, game.playerBoard, rotateShip]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setShowIntro(false), 2500);
-    return () => clearTimeout(timer);
-  }, []);
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -159,16 +164,44 @@ function App() {
   const handleConfirmBattle = () => {
     setShowBattleOverlay(false);
     beginBattle();
+    feedback.playIntro();
   };
 
   const handleNewGame = () => {
     setSelectedShip(null);
+    setFleetZoomed(false);
     startGame();
   };
 
+  const handleIntroDone = () => {
+    setShowIntro(false);
+    if (!seenTutorial) setShowTutorial(true);
+  };
+
+  const handleTutorialDone = () => {
+    setSeenTutorial(true);
+    localStorage.setItem('battleShipz-seen-tutorial', '1');
+    setShowTutorial(false);
+  };
+
+  const handleTutorialSkip = () => {
+    setSeenTutorial(true);
+    localStorage.setItem('battleShipz-seen-tutorial', '1');
+    setShowTutorial(false);
+  };
+
+  const handleDismissHint = () => {
+    setShowHint(false);
+    dismissHint();
+  };
+
+  useEffect(() => {
+    if (game.consecutiveMisses >= 3) setShowHint(true);
+  }, [game.consecutiveMisses]);
+
   return (
     <div className="safe-area flex flex-col min-h-screen min-h-[100dvh]">
-      {showIntro && <Intro onDone={() => setShowIntro(false)} />}
+      {showIntro && <Intro onDone={handleIntroDone} />}
 
       <StatusPanel
         status={game.status}
@@ -217,19 +250,6 @@ function App() {
             </div>
           )}
 
-          {game.phase === 'playing' && (
-            <div className={game.shakeSide === 'player' ? 'animate-shake' : ''}>
-              <Board
-                board={game.playerBoard}
-                isPlayerBoard
-                disabled
-                title="Your Fleet"
-                lastShot={playerLastShot}
-                sinkingShip={playerSinkingShip}
-              />
-            </div>
-          )}
-
           {game.phase === 'setup' && (
             <Board
               board={game.playerBoard}
@@ -257,9 +277,29 @@ function App() {
         </section>
 
         <aside className="lg:col-span-4 flex flex-col gap-4 h-full">
+          {game.phase === 'playing' && (
+            <div className="relative w-full max-w-[200px] mx-auto cursor-zoom-in" title="Click to zoom in on Your Fleet">
+              <Board
+                board={game.playerBoard}
+                isPlayerBoard
+                disabled
+                title="Your Fleet"
+                lastShot={playerLastShot}
+                sinkingShip={playerSinkingShip}
+              />
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Zoom in on Your Fleet"
+                className="absolute inset-0 rounded-lg"
+                onClick={() => setFleetZoomed(true)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setFleetZoomed(true); }}
+              />
+            </div>
+          )}
           {game.phase === 'playing' && <CommanderChat messages={game.chat} />}
           <TallyBoard name={game.admiralName} tally={game.tally} />
-          <SettingsPanel />
+          <SettingsPanel onOpenTutorial={() => setShowTutorial(true)} />
           {game.phase === 'playing' && (
             <>
               <FleetPanel ships={game.enemyBoard.ships} label="Enemy Fleet Status" />
@@ -289,11 +329,38 @@ function App() {
         />
       )}
 
+      {showTutorial && <TutorialOverlay onDone={handleTutorialDone} onSkip={handleTutorialSkip} />}
+
+      {showHint && <HintOverlay onDismiss={handleDismissHint} />}
+
+      {fleetZoomed && game.phase === 'playing' && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ocean/90 backdrop-blur-sm cursor-zoom-out"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Zoomed Your Fleet"
+          onClick={() => setFleetZoomed(false)}
+        >
+          <div className="max-w-md w-full mx-4">
+            <Board
+              board={game.playerBoard}
+              isPlayerBoard
+              disabled
+              title="Your Fleet"
+              lastShot={playerLastShot}
+              sinkingShip={playerSinkingShip}
+            />
+            <p className="text-center text-muted text-sm mt-2">Click anywhere to shrink</p>
+          </div>
+        </div>
+      )}
+
       {game.gameOver && game.winner && (
         <ResultOverlay
           winner={game.winner}
           playerName={game.admiralName}
           tally={game.tally}
+          stats={game.stats}
           onPlayAgain={handleNewGame}
         />
       )}

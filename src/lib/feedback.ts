@@ -22,7 +22,7 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
-function playTone(frequency: number, duration: number, type: OscillatorType = 'sine', startOffset = 0, endOffset = 0) {
+function playTone(frequency: number, duration: number, type: OscillatorType = 'sine', startOffset = 0, endOffset = 0, when?: number) {
   const ctx = getAudioContext();
   if (!ctx) return;
 
@@ -30,7 +30,7 @@ function playTone(frequency: number, duration: number, type: OscillatorType = 's
     ctx.resume().catch(() => {});
   }
 
-  const t = ctx.currentTime;
+  const t = when ?? ctx.currentTime;
   const oscillator = ctx.createOscillator();
   const gain = ctx.createGain();
 
@@ -110,5 +110,30 @@ export const feedback = {
   triggerHaptic(event: Exclude<FeedbackEvent, 'win' | 'lose'>) {
     if (!state.haptics || typeof navigator === 'undefined' || !navigator.vibrate) return;
     navigator.vibrate(hapticPattern(event));
+  },
+
+  playIntro() {
+    if (!state.sound) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    // Short pirate-flavored fanfare (approximation of a famous sea-faring theme)
+    const now = ctx.currentTime;
+    const notes = [
+      { freq: 293.66, dur: 0.18 }, // D4
+      { freq: 329.63, dur: 0.18 }, // E4
+      { freq: 369.99, dur: 0.18 }, // F#4
+      { freq: 392.0, dur: 0.18 },  // G4
+      { freq: 440.0, dur: 0.36 },  // A4
+      { freq: 392.0, dur: 0.18 },  // G4
+      { freq: 369.99, dur: 0.18 }, // F#4
+      { freq: 329.63, dur: 0.18 }, // E4
+      { freq: 293.66, dur: 0.54 }, // D4
+    ];
+    let offset = 0;
+    notes.forEach(({ freq, dur }) => {
+      playTone(freq, dur, 'triangle', 0, 0, now + offset);
+      offset += dur + 0.03;
+    });
   },
 };
