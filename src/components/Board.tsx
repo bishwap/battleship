@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { BOARD_SIZE, SHIPS } from '../lib/constants';
 import { canPlaceShip } from '../lib/gameLogic';
-import type { Board as BoardType, Position, SinkingShip } from '../lib/types';
+import type { Board as BoardType, Position, ShipType, SinkingShip } from '../lib/types';
 import { Cell } from './Cell';
 import { Ship } from './Ship';
 
 type BoardProps = {
   board: BoardType;
   isPlayerBoard: boolean;
+  shipTypes?: ShipType[];
   onCellClick?: (x: number, y: number) => void;
   onCellDrop?: (shipId: string, orientation: 'horizontal' | 'vertical', x: number, y: number) => void;
   onSelectShip?: (shipId: string, orientation: 'horizontal' | 'vertical') => void;
@@ -19,11 +19,12 @@ type BoardProps = {
   selectedOrientation?: 'horizontal' | 'vertical';
 };
 
-const ROW_LABELS = 'ABCDEFGHIJ'.split('');
+const ROW_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 export function Board({
   board,
   isPlayerBoard,
+  shipTypes = [],
   onCellClick,
   onCellDrop,
   onSelectShip,
@@ -34,13 +35,19 @@ export function Board({
   selectedShip,
   selectedOrientation = 'horizontal',
 }: BoardProps) {
+  const size = board.cells.length;
   const isInteractive = !disabled && !!onCellClick;
   const [activeCell, setActiveCell] = useState<{ x: number; y: number } | null>(null);
   const [hoverCell, setHoverCell] = useState<{ x: number; y: number } | null>(null);
   const draggingRef = useRef(false);
   const cellRefs = useRef<(HTMLButtonElement | null)[][]>(
-    Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null))
+    Array.from({ length: size }, () => Array(size).fill(null))
   );
+
+  useEffect(() => {
+    cellRefs.current = Array.from({ length: size }, () => Array(size).fill(null));
+    if (isInteractive) setActiveCell({ x: 0, y: 0 });
+  }, [size, isInteractive]);
 
   useEffect(() => {
     if (isInteractive && !activeCell) {
@@ -63,13 +70,13 @@ export function Board({
 
   const preview = (() => {
     if (!selectedShip || !previewCell || !isInteractive) return null;
-    const ship = SHIPS.find((s) => s.id === selectedShip);
+    const ship = shipTypes.find((s) => s.id === selectedShip);
     if (!ship) return null;
     const positions: { x: number; y: number }[] = [];
     for (let i = 0; i < ship.length; i++) {
       const x = previewCell.x + (selectedOrientation === 'vertical' ? 0 : i);
       const y = previewCell.y + (selectedOrientation === 'vertical' ? i : 0);
-      if (x < BOARD_SIZE && y < BOARD_SIZE) {
+      if (x < size && y < size) {
         positions.push({ x, y });
       }
     }
@@ -100,21 +107,21 @@ export function Board({
     e.preventDefault();
     let nx = x + move.dx;
     let ny = y + move.dy;
-    while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+    while (nx >= 0 && nx < size && ny >= 0 && ny < size) {
       const el = cellRefs.current[ny]?.[nx];
       if (el && !el.disabled) break;
       nx += move.dx;
       ny += move.dy;
     }
-    nx = Math.max(0, Math.min(BOARD_SIZE - 1, nx));
-    ny = Math.max(0, Math.min(BOARD_SIZE - 1, ny));
+    nx = Math.max(0, Math.min(size - 1, nx));
+    ny = Math.max(0, Math.min(size - 1, ny));
     setActiveCell({ x: nx, y: ny });
   };
 
   const shipData = (() => {
     const data = new Map<string, { orientation: 'horizontal' | 'vertical'; length: number; positions: { x: number; y: number }[] }>();
-    for (let y = 0; y < BOARD_SIZE; y++) {
-      for (let x = 0; x < BOARD_SIZE; x++) {
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
         const shipId = board.cells[y][x].shipId;
         if (!shipId) continue;
         if (!data.has(shipId)) {
@@ -205,13 +212,13 @@ export function Board({
         <div
           className="absolute inset-0 grid w-full h-full min-w-0 gap-1 sm:gap-1.5"
           style={{
-            gridTemplateColumns: 'repeat(11, minmax(0, 1fr))',
-            gridTemplateRows: 'repeat(11, minmax(0, 1fr))',
+            gridTemplateColumns: `repeat(${size + 1}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${size + 1}, minmax(0, 1fr))`,
           }}
           onMouseLeave={() => setHoverCell(null)}
         >
         <div style={{ gridColumn: '1 / 2', gridRow: '1 / 2' }} />
-        {Array.from({ length: BOARD_SIZE }, (_, i) => (
+        {Array.from({ length: size }, (_, i) => (
           <div
             key={`col-${i}`}
             style={{ gridColumn: `${i + 2} / ${i + 3}`, gridRow: '1 / 2' }}

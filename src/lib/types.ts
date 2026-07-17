@@ -56,6 +56,8 @@ export type SideStats = {
   sunk: number;
 };
 
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
 export type GameState = {
   phase: 'setup' | 'playing';
   playerBoard: Board;
@@ -74,4 +76,6 @@ export type GameState = {
   placementHistory: string[];
   stats: { player: SideStats; ai: SideStats };
   consecutiveMisses: number;
+  difficulty: Difficulty;
+  shipSet: ShipType[];
 };
