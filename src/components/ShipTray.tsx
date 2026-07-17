@@ -36,7 +36,7 @@ export function ShipTray({ ships, selectedShipId, onSelectShip, className = '' }
   };
 
   return (
-    <div className={`bg-ocean-light/50 border border-grid rounded-lg p-3 ${className}`}>
+    <div className={`bg-ocean-light/50 border border-grid rounded-lg p-3 touch-pan-y ${className}`}>
       <h3 className="text-accent text-sm font-bold tracking-wider mb-3 uppercase">Ship Dock</h3>
       <div className="flex flex-wrap gap-4 items-center justify-center">
         {ships.length === 0 && (
@@ -64,7 +64,7 @@ export function ShipTray({ ships, selectedShipId, onSelectShip, className = '' }
                   }
                 }}
                 style={{ width, height }}
-                className={`cursor-move focus:outline-none focus-visible:ring-2 focus-visible:ring-radar rounded ${isSelected ? 'ring-2 ring-radar' : ''}`}
+                className={`cursor-move touch-pan-y focus:outline-none focus-visible:ring-2 focus-visible:ring-radar rounded ${isSelected ? 'ring-2 ring-radar' : ''}`}
                 title={`Select ${ship.name} and tap your board to place`}
               >
                 <Ship id={ship.id} length={ship.length} orientation={orientation} state="intact" className="w-full h-full pixel-art" />

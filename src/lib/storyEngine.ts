@@ -52,7 +52,7 @@ const playerMissLines: Record<string, string[]> = {
   'ai-doomed': [
     'A miss? They are almost beaten!',
     'I have them cornered, I can feel it.',
-    'One more salvo and this is over.',
+    'One more shot and this is over.',
   ],
 };
 

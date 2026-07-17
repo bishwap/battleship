@@ -72,7 +72,7 @@ export function ResultOverlay({ winner, playerName, tally, stats, onPlayAgain }:
 
         <div className="grid grid-cols-2 gap-3 mt-6 text-sm text-text">
           <div className="rounded-lg border border-grid bg-ocean-light/50 p-3">
-            <p className="text-muted text-xs uppercase tracking-wider">Salvoes Fired</p>
+            <p className="text-muted text-xs uppercase tracking-wider">Shots Fired</p>
             <p className="text-radar-glow font-bold text-lg">{stats.player.shots}</p>
           </div>
           <div className="rounded-lg border border-grid bg-ocean-light/50 p-3">
@@ -94,7 +94,7 @@ export function ResultOverlay({ winner, playerName, tally, stats, onPlayAgain }:
         <div className="flex items-center justify-center gap-6 mt-4 text-sm text-text">
           <span className="text-ship-glow font-bold">Wins: {tally.wins}</span>
           <span className="text-sunk-glow font-bold">Losses: {tally.losses}</span>
-          <span className="text-radar-glow font-bold">Win %: {winRate}</span>
+          <span className="text-radar-glow font-bold">Win {winRate}%</span>
         </div>
         <button
           ref={playAgainRef}

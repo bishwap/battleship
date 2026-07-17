@@ -12,23 +12,30 @@ const state: FeedbackState = {
 
 let audioCtx: AudioContext | null = null;
 
-function getAudioContext(): AudioContext | null {
+async function ensureAudioContext(): Promise<AudioContext | null> {
   if (typeof window === 'undefined') return null;
+
+  const Ctx = (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext) as typeof AudioContext | undefined;
+  if (!Ctx) return null;
+
   if (!audioCtx) {
-    const Ctx = (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext) as typeof AudioContext | undefined;
-    if (!Ctx) return null;
     audioCtx = new Ctx();
   }
+
+  if (audioCtx.state === 'suspended') {
+    try {
+      await audioCtx.resume();
+    } catch {
+      // Ignore autoplay restrictions; audio will simply not play this time.
+    }
+  }
+
   return audioCtx;
 }
 
-function playTone(frequency: number, duration: number, type: OscillatorType = 'sine', startOffset = 0, endOffset = 0, when?: number) {
-  const ctx = getAudioContext();
+async function playTone(frequency: number, duration: number, type: OscillatorType = 'sine', startOffset = 0, endOffset = 0, when?: number) {
+  const ctx = await ensureAudioContext();
   if (!ctx) return;
-
-  if (ctx.state === 'suspended') {
-    ctx.resume().catch(() => {});
-  }
 
   const t = when ?? ctx.currentTime;
   const oscillator = ctx.createOscillator();
@@ -80,28 +87,28 @@ export const feedback = {
     state.haptics = enabled;
   },
 
-  playSound(event: FeedbackEvent) {
+  async playSound(event: FeedbackEvent) {
     if (!state.sound) return;
     switch (event) {
       case 'tap':
-        playTone(800, 0.06);
+        await playTone(800, 0.06);
         break;
       case 'miss':
-        playTone(300, 0.12, 'sine');
+        await playTone(300, 0.12, 'sine');
         break;
       case 'hit':
-        playTone(600, 0.12, 'square');
+        await playTone(600, 0.12, 'square');
         break;
       case 'sunk':
-        playTone(300, 0.35, 'sawtooth', 0, -200);
+        await playTone(300, 0.35, 'sawtooth', 0, -200);
         break;
       case 'win':
-        playTone(523, 0.2, 'sine');
+        await playTone(523, 0.2, 'sine');
         setTimeout(() => playTone(659, 0.2, 'sine'), 120);
         setTimeout(() => playTone(784, 0.3, 'sine'), 240);
         break;
       case 'lose':
-        playTone(300, 0.3, 'sawtooth', 0, -100);
+        await playTone(300, 0.3, 'sawtooth', 0, -100);
         setTimeout(() => playTone(200, 0.4, 'sawtooth', 0, -100), 250);
         break;
     }
@@ -112,9 +119,9 @@ export const feedback = {
     navigator.vibrate(hapticPattern(event));
   },
 
-  playIntro() {
+  async playIntro() {
     if (!state.sound) return;
-    const ctx = getAudioContext();
+    const ctx = await ensureAudioContext();
     if (!ctx) return;
 
     // Short pirate-flavored fanfare (approximation of a famous sea-faring theme)

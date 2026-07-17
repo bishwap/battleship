@@ -11,10 +11,23 @@ type LastShot = {
 
 type StatusPanelProps = {
   playerName: string;
+  playerHealth?: number;
+  enemyHealth?: number;
   lastShot?: LastShot;
 };
 
-export function StatusPanel({ playerName, lastShot }: StatusPanelProps) {
+function HealthBar({ value, colorClass }: { value: number; colorClass: string }) {
+  return (
+    <div className="w-14 sm:w-20 h-1.5 bg-grid rounded-full overflow-hidden mt-1">
+      <div
+        className={`h-full ${colorClass} transition-all duration-300`}
+        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+      />
+    </div>
+  );
+}
+
+export function StatusPanel({ playerName, playerHealth = 100, enemyHealth = 100, lastShot }: StatusPanelProps) {
   const [firing, setFiring] = useState<{ key: number; side: 'player' | 'ai' } | null>(null);
 
   useEffect(() => {
@@ -36,6 +49,7 @@ export function StatusPanel({ playerName, lastShot }: StatusPanelProps) {
           <div className="w-12 h-8 sm:w-16 sm:h-10" title={`${playerName}'s ship`}>
             <Ship id="battleship" length={4} orientation="horizontal" state="intact" className="w-full h-full pixel-art" />
           </div>
+          <HealthBar value={playerHealth} colorClass="bg-ship" />
         </div>
 
         <div className="relative flex-1 h-8 sm:h-10">
@@ -55,6 +69,7 @@ export function StatusPanel({ playerName, lastShot }: StatusPanelProps) {
           <div className="w-12 h-8 sm:w-16 sm:h-10 scale-x-[-1]" title={`${AI_COMMANDER}'s ship`}>
             <Ship id="battleship" length={4} orientation="horizontal" state="intact" className="w-full h-full pixel-art" />
           </div>
+          <HealthBar value={enemyHealth} colorClass="bg-hit" />
         </div>
       </div>
     </header>

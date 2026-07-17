@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { useGame } from './hooks/useGame';
 import { feedback } from './lib/feedback';
@@ -45,6 +45,7 @@ function App() {
   const [showNameEntry, setShowNameEntry] = useState(() => !localStorage.getItem('battleshipz-admiral'));
   const [fleetZoomed, setFleetZoomed] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [tutorialSource, setTutorialSource] = useState<'onboarding' | 'menu'>('onboarding');
   const { settings, setSound } = useSettings();
 
   const handleRotateSelectedShip = useCallback(() => {
@@ -111,9 +112,29 @@ function App() {
   const enemySinkingShip = game.sinkingShip?.side === 'ai' ? game.sinkingShip : null;
   const chatMessages = game.chat.filter((m) => m.type !== 'intro');
 
-  const unplacedShips = game.shipSet.filter(
-    (ship) => !game.playerBoard.ships.some((placed) => placed.id === ship.id)
+  const unplacedShips = useMemo(
+    () => game.shipSet.filter((ship) => !game.playerBoard.ships.some((placed) => placed.id === ship.id)),
+    [game.shipSet, game.playerBoard.ships]
   );
+
+  const playerHealth = useMemo(() => {
+    const total = game.playerBoard.ships.reduce((sum, s) => sum + s.length, 0);
+    const remaining = game.playerBoard.ships.reduce((sum, s) => sum + Math.max(0, s.length - s.hits), 0);
+    return total > 0 ? Math.round((remaining / total) * 100) : 100;
+  }, [game.playerBoard.ships]);
+
+  const enemyHealth = useMemo(() => {
+    const total = game.enemyBoard.ships.reduce((sum, s) => sum + s.length, 0);
+    const remaining = game.enemyBoard.ships.reduce((sum, s) => sum + Math.max(0, s.length - s.hits), 0);
+    return total > 0 ? Math.round((remaining / total) * 100) : 100;
+  }, [game.enemyBoard.ships]);
+
+  useEffect(() => {
+    if (game.phase === 'setup' && !selectedShip && unplacedShips.length > 0) {
+      setSelectedShip(unplacedShips[0].id);
+      setSelectedOrientation('horizontal');
+    }
+  }, [game.phase, selectedShip, unplacedShips]);
 
   const handleSelectShip = (shipId: string, orientation: 'horizontal' | 'vertical') => {
     setSelectedShip(shipId);
@@ -169,7 +190,7 @@ function App() {
   const handleConfirmBattle = () => {
     setShowBattleOverlay(false);
     beginBattle();
-    feedback.playIntro();
+    void feedback.playIntro();
   };
 
   const handleNewGame = () => {
@@ -192,6 +213,7 @@ function App() {
     setShowIntro(false);
     if (showNameEntry) return;
     if (!seenTutorial) {
+      setTutorialSource('onboarding');
       setShowTutorial(true);
     } else {
       setShowDifficultySelect(true);
@@ -203,6 +225,7 @@ function App() {
       setAdmiralName(name);
       setShowNameEntry(false);
       if (!seenTutorial) {
+        setTutorialSource('onboarding');
         setShowTutorial(true);
       } else {
         setShowDifficultySelect(true);
@@ -215,14 +238,23 @@ function App() {
     setSeenTutorial(true);
     localStorage.setItem('battleShipz-seen-tutorial', '1');
     setShowTutorial(false);
-    setShowDifficultySelect(true);
+    if (tutorialSource === 'onboarding') {
+      setShowDifficultySelect(true);
+    }
   };
 
   const handleTutorialSkip = () => {
     setSeenTutorial(true);
     localStorage.setItem('battleShipz-seen-tutorial', '1');
     setShowTutorial(false);
-    setShowDifficultySelect(true);
+    if (tutorialSource === 'onboarding') {
+      setShowDifficultySelect(true);
+    }
+  };
+
+  const handleOpenTutorial = () => {
+    setTutorialSource('menu');
+    setShowTutorial(true);
   };
 
   const handleDismissHint = () => {
@@ -240,7 +272,12 @@ function App() {
       {!showIntro && showNameEntry && <NameEntry defaultName={game.admiralName} onDone={handleNameSet} />}
       {showDifficultySelect && <DifficultySelector onSelect={handleDifficultySelect} />}
 
-      <StatusPanel playerName={game.admiralName} lastShot={game.lastShot} />
+      <StatusPanel
+        playerName={game.admiralName}
+        playerHealth={playerHealth}
+        enemyHealth={enemyHealth}
+        lastShot={game.lastShot}
+      />
 
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 max-w-[1400px] mx-auto w-full">
         <section className="lg:col-span-8 flex flex-col gap-4 sm:gap-6">
@@ -254,6 +291,7 @@ function App() {
                 canUndo={game.placementHistory.length > 0}
                 canStartBattle={game.playerBoard.ships.length === game.shipSet.length}
                 selectedShip={selectedShip}
+                selectedShipName={game.shipSet.find((s) => s.id === selectedShip)?.name}
               />
             </div>
           )}
@@ -271,6 +309,15 @@ function App() {
                 sinkingShip={enemySinkingShip}
               />
             </div>
+          )}
+
+          {game.phase === 'setup' && (
+            <ShipTray
+              ships={unplacedShips}
+              selectedShipId={selectedShip}
+              onSelectShip={handleSelectShip}
+              className="lg:hidden"
+            />
           )}
 
           {game.phase === 'setup' && (
@@ -300,7 +347,7 @@ function App() {
           )}
         </section>
 
-        <aside className="lg:col-span-4 flex flex-col gap-4 h-full">
+        <aside className="lg:col-span-4 flex flex-col gap-4">
           {game.phase === 'playing' && (
             <div className={game.shakeSide === 'player' ? 'animate-shake' : ''}>
               <div className="relative w-full mx-auto cursor-zoom-in" title="Click to zoom in on Your Fleet">
@@ -340,13 +387,14 @@ function App() {
                 ships={unplacedShips}
                 selectedShipId={selectedShip}
                 onSelectShip={handleSelectShip}
+                className="hidden lg:block"
               />
               {game.playerBoard.ships.length > 0 && (
                 <FleetPanel ships={game.playerBoard.ships} label="Placed Ships" />
               )}
             </>
           )}
-          <SettingsPanel onOpenTutorial={() => setShowTutorial(true)} />
+          <SettingsPanel onOpenTutorial={handleOpenTutorial} />
         </aside>
       </main>
 
@@ -358,7 +406,9 @@ function App() {
         />
       )}
 
-      {showTutorial && <TutorialOverlay onDone={handleTutorialDone} onSkip={handleTutorialSkip} />}
+      {showTutorial && (
+        <TutorialOverlay playerName={game.admiralName} onDone={handleTutorialDone} onSkip={handleTutorialSkip} />
+      )}
 
       {fleetZoomed && game.phase === 'playing' && (
         <div

@@ -209,7 +209,7 @@ export function Board({
   const titleClass = isPlayerBoard ? 'text-accent' : 'text-hit-glow';
 
   return (
-    <div className={`flex flex-col items-center w-full max-w-[65vh] mx-auto rounded-lg p-2 sm:p-4 ${themeClass}`}>
+    <div className={`flex flex-col items-center touch-pan-y w-full max-w-[65dvh] mx-auto rounded-lg p-2 sm:p-4 ${themeClass}`}>
       <h3 className={`text-sm sm:text-base font-bold tracking-wider mb-2 sm:mb-3 uppercase ${titleClass}`}>{title}</h3>
       <div className="relative w-full" style={{ paddingBottom: '100%' }}>
         <div

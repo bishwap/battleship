@@ -1,36 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
 
-const STEPS = [
+type Step = {
+  title: (name: string) => string;
+  body: string;
+};
+
+const STEPS: Step[] = [
   {
-    title: 'Welcome aboard, Admiral!',
-    body: 'BattleShipz is a tactical naval duel. Your mission: place your fleet, hunt the enemy, and sink every ship before they sink yours.',
+    title: (name) => `Welcome aboard, ${name}!`,
+    body: 'Your goal is simple: sink all five enemy ships before they sink yours.',
   },
   {
-    title: 'Place & rotate your fleet',
-    body: 'Drag a ship from the dock to your board, or click a ship then click a cell. Click a placed ship to select it, then click again or press R / Rotate Ship to spin it. You can still move and rotate ships after pressing Randomize Fleet.',
+    title: () => 'Place your ships',
+    body: 'Drag a ship from the dock to your board, or tap a ship then tap a cell. Tap a placed ship to move or rotate it.',
   },
   {
-    title: 'Ready for battle',
-    body: 'When your fleet is set, press Start Battle and confirm Set Sail. Your shot is fired by clicking an enemy cell. A hit lets you fire again; a miss hands the turn to the enemy.',
+    title: () => 'Start the battle',
+    body: 'When your fleet is ready, tap Start Battle, then Set Sail. Tap enemy cells to fire. A hit lets you shoot again; a miss gives the AI a turn.',
   },
   {
-    title: 'Zoom your fleet',
-    body: 'The "Your Fleet" panel in the side bar can be clicked to zoom in for a closer look, and clicked again to shrink back down.',
-  },
-  {
-    title: 'Tactical hint',
-    body: 'Try a checkerboard firing pattern — every other cell covers all ship sizes efficiently. When you hit, keep shooting around that spot until the ship sinks.',
+    title: () => 'Zoom & settings',
+    body: 'Tap Your Fleet in the side panel to zoom in. Try a checkerboard firing pattern to find ships faster.',
   },
 ];
 
 type TutorialOverlayProps = {
+  playerName: string;
   onDone: () => void;
   onSkip: () => void;
 };
 
-export function TutorialOverlay({ onDone, onSkip }: TutorialOverlayProps) {
+export function TutorialOverlay({ playerName, onDone, onSkip }: TutorialOverlayProps) {
   const [step, setStep] = useState(0);
   const nextRef = useRef<HTMLButtonElement>(null);
+
+  const current = STEPS[step];
+  const isLast = step === STEPS.length - 1;
 
   useEffect(() => {
     nextRef.current?.focus();
@@ -51,31 +56,34 @@ export function TutorialOverlay({ onDone, onSkip }: TutorialOverlayProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [step, onDone, onSkip]);
 
-  const current = STEPS[step];
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ocean/90 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ocean/90 backdrop-blur-sm p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="tutorial-title"
     >
-      <div className="max-w-md w-full mx-4 p-6 sm:p-8 rounded-xl border-2 border-radar/30 bg-ocean-light/80 shadow-2xl">
-        <h2 id="tutorial-title" className="text-2xl sm:text-3xl font-black tracking-wide text-accent uppercase mb-3">
-          {current.title}
-        </h2>
-        <p className="text-text mb-6 leading-relaxed">{current.body}</p>
+      <div className="max-w-md w-full min-h-[420px] flex flex-col p-6 sm:p-8 rounded-xl border-2 border-radar/30 bg-ocean-light/80 shadow-2xl">
+        <div className="flex-1 flex flex-col">
+          <h2
+            id="tutorial-title"
+            className="text-2xl sm:text-3xl font-black tracking-wide text-accent uppercase mb-4"
+          >
+            {current.title(playerName)}
+          </h2>
+          <p className="text-text text-base leading-relaxed flex-1">{current.body}</p>
 
-        <div className="flex items-center justify-center gap-2 mb-6">
-          {STEPS.map((_, i) => (
-            <span
-              key={i}
-              className={`h-2 w-2 rounded-full ${i === step ? 'bg-radar' : 'bg-grid'}`}
-            />
-          ))}
+          <div className="flex items-center justify-center gap-2 mt-4">
+            {STEPS.map((_, i) => (
+              <span
+                key={i}
+                className={`h-2.5 w-2.5 rounded-full ${i === step ? 'bg-radar' : 'bg-grid'}`}
+              />
+            ))}
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-4 mt-6 pt-4 border-t border-grid/40">
           <button
             type="button"
             onClick={onSkip}
@@ -83,26 +91,28 @@ export function TutorialOverlay({ onDone, onSkip }: TutorialOverlayProps) {
           >
             Skip tutorial
           </button>
+
           <div className="flex items-center gap-3">
-            {step > 0 && (
-              <button
-                type="button"
-                onClick={() => setStep((s) => s - 1)}
-                className="min-h-[44px] px-4 py-2 rounded-lg border border-radar/50 bg-radar/10 text-radar-glow hover:bg-radar/20 transition-colors"
-              >
-                Back
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setStep((s) => Math.max(0, s - 1))}
+              disabled={step === 0}
+              className={`min-h-[44px] min-w-[80px] px-4 py-2 rounded-lg border border-radar/50 bg-radar/10 text-radar-glow hover:bg-radar/20 transition-colors ${
+                step === 0 ? 'invisible' : ''
+              }`}
+            >
+              Back
+            </button>
             <button
               ref={nextRef}
               type="button"
               onClick={() => {
-                if (step < STEPS.length - 1) setStep((s) => s + 1);
-                else onDone();
+                if (isLast) onDone();
+                else setStep((s) => s + 1);
               }}
-              className="min-h-[44px] px-6 py-2 rounded-lg border border-ship/50 bg-ship/10 text-ship-glow hover:bg-ship/20 transition-colors"
+              className="min-h-[44px] min-w-[110px] px-6 py-2 rounded-lg border border-ship/50 bg-ship/10 text-ship-glow hover:bg-ship/20 transition-colors"
             >
-              {step === STEPS.length - 1 ? 'Set Sail' : 'Next'}
+              {isLast ? 'Set Sail' : 'Next'}
             </button>
           </div>
         </div>

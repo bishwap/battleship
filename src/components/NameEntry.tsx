@@ -5,8 +5,10 @@ type NameEntryProps = {
   onDone: (name: string) => void;
 };
 
+const DEFAULT_PLACEHOLDER = 'Admiral';
+
 export function NameEntry({ defaultName = '', onDone }: NameEntryProps) {
-  const [name, setName] = useState(defaultName);
+  const [name, setName] = useState(defaultName && defaultName !== DEFAULT_PLACEHOLDER ? defaultName : '');
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -18,7 +20,7 @@ export function NameEntry({ defaultName = '', onDone }: NameEntryProps) {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
-      setError('Enter your admiral name to set sail.');
+      setError('Enter your name to set sail.');
       return;
     }
     onDone(trimmed);
@@ -36,7 +38,7 @@ export function NameEntry({ defaultName = '', onDone }: NameEntryProps) {
         className="w-full max-w-sm mx-4 p-6 rounded-xl border border-radar/30 bg-ocean-light/80 shadow-2xl"
       >
         <h2 id="name-title" className="text-2xl font-black text-accent uppercase tracking-wide mb-2">
-          Ahoy, Admiral!
+          Ahoy, Commander!
         </h2>
         <p className="text-muted text-sm mb-4">What name shall the crew call you?</p>
 
@@ -49,7 +51,7 @@ export function NameEntry({ defaultName = '', onDone }: NameEntryProps) {
             setError('');
           }}
           maxLength={20}
-          placeholder="Admiral"
+          placeholder="Your name"
           className="w-full px-4 py-3 rounded-lg border border-grid bg-ocean-light text-text text-lg focus:border-radar focus:outline-none"
           aria-describedby={error ? 'name-error' : undefined}
         />
