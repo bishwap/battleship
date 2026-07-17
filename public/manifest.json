@@ -8,18 +8,56 @@
   "orientation": "any",
   "background_color": "#020617",
   "theme_color": "#0f172a",
+  "categories": ["games"],
   "icons": [
     {
-      "src": "/battleship/favicon.svg",
-      "type": "image/svg+xml",
-      "sizes": "any",
+      "src": "/battleship/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/battleship/favicon.svg",
-      "type": "image/svg+xml",
+      "src": "/battleship/icon-512.png",
+      "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
+    },
+    {
+      "src": "/battleship/maskable-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/battleship/maskable-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/battleship/screenshots/desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/battleship/screenshots/mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Game",
+      "short_name": "New Game",
+      "description": "Start a new battle",
+      "url": "/battleship/?action=new-game",
+      "icons": [
+        { "src": "/battleship/icon-192.png", "sizes": "192x192" }
+      ]
     }
   ]
 }

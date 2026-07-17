@@ -1,11 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { feedback } from '../lib/feedback';
-
-export type Settings = {
-  sound: boolean;
-  haptics: boolean;
-  reducedMotion: boolean;
-};
+import { type Settings, SettingsContext } from './SettingsContext';
 
 const defaultSettings: Settings = {
   sound: true,
@@ -37,17 +32,6 @@ function saveSettings(settings: Settings) {
     // ignore storage errors
   }
 }
-
-const SettingsContext = createContext<
-  | {
-      settings: Settings;
-      setSound: (enabled: boolean) => void;
-      setHaptics: (enabled: boolean) => void;
-      setReducedMotion: (enabled: boolean) => void;
-      reset: () => void;
-    }
-  | null
->(null);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() => {
@@ -88,10 +72,4 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       {children}
     </SettingsContext.Provider>
   );
-}
-
-export function useSettings() {
-  const ctx = useContext(SettingsContext);
-  if (!ctx) throw new Error('useSettings must be used within a SettingsProvider');
-  return ctx;
 }

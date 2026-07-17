@@ -1,23 +1,10 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { PwaContext } from './PwaContext';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
-
-export type PwaContextValue = {
-  canInstall: boolean;
-  isInstalled: boolean;
-  prompt: (() => Promise<boolean>) | null;
-  isIos: boolean;
-};
-
-const PwaContext = createContext<PwaContextValue>({
-  canInstall: false,
-  isInstalled: false,
-  prompt: null,
-  isIos: false,
-});
 
 export function PwaProvider({ children }: { children: React.ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -64,8 +51,4 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
       {children}
     </PwaContext.Provider>
   );
-}
-
-export function usePwa() {
-  return useContext(PwaContext);
 }

@@ -70,11 +70,17 @@ export function Board({
         positions.push({ x, y });
       }
     }
-    const valid = canPlaceShip(board.cells, ship, previewCell.x, previewCell.y, selectedOrientation);
+    const valid = canPlaceShip(board.cells, ship, previewCell.x, previewCell.y, selectedOrientation, selectedShip);
     return { positions, valid };
   })();
 
   const handleCellKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onCellClick?.(x, y);
+      return;
+    }
+
     const moves: Record<string, { dx: number; dy: number }> = {
       ArrowUp: { dx: 0, dy: -1 },
       ArrowDown: { dx: 0, dy: 1 },
@@ -84,10 +90,17 @@ export function Board({
     const move = moves[e.key];
     if (!move) return;
     e.preventDefault();
-    setActiveCell({
-      x: Math.max(0, Math.min(BOARD_SIZE - 1, x + move.dx)),
-      y: Math.max(0, Math.min(BOARD_SIZE - 1, y + move.dy)),
-    });
+    let nx = x + move.dx;
+    let ny = y + move.dy;
+    while (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+      const el = cellRefs.current[ny]?.[nx];
+      if (el && !el.disabled) break;
+      nx += move.dx;
+      ny += move.dy;
+    }
+    nx = Math.max(0, Math.min(BOARD_SIZE - 1, nx));
+    ny = Math.max(0, Math.min(BOARD_SIZE - 1, ny));
+    setActiveCell({ x: nx, y: ny });
   };
 
   const shipData = (() => {
@@ -135,7 +148,7 @@ export function Board({
               id={shipId}
               length={ship.length}
               orientation={meta.orientation}
-              state={ship.hits > 0 ? 'hit' : 'intact'}
+              state="intact"
               className="w-full h-full pixel-art"
             />
           </div>
@@ -144,7 +157,7 @@ export function Board({
     : [];
 
   const sinkingOverlay = (() => {
-    if (!isPlayerBoard || !sinkingShip) return null;
+    if (!sinkingShip) return null;
     const meta = shipData.get(sinkingShip.shipId);
     if (!meta) return null;
     const minX = Math.min(...meta.positions.map((p) => p.x));
@@ -209,7 +222,9 @@ export function Board({
           </div>
         ))}
         {board.cells.map((row, y) =>
-          row.map((cell, x) => (
+          row.map((cell, x) => {
+            const cellDisabled = disabled || !onCellClick || cell.state === 'hit' || cell.state === 'miss' || cell.state === 'sunk';
+            return (
             <Cell
               key={`cell-${x}-${y}`}
               ref={(el) => {
@@ -218,9 +233,9 @@ export function Board({
               state={cell.state}
               isPlayerBoard={isPlayerBoard}
               isLastShot={lastShot?.x === x && lastShot?.y === y}
-              disabled={disabled || !onCellClick}
-              label={`${ROW_LABELS[y]}${x + 1} ${cell.state}`}
-              tabIndex={activeCell?.x === x && activeCell?.y === y ? 0 : -1}
+              disabled={cellDisabled}
+              label={`${ROW_LABELS[y]}${x + 1} ${isPlayerBoard || cell.state !== 'ship' ? cell.state : 'empty'}`}
+              tabIndex={activeCell?.x === x && activeCell?.y === y && !cellDisabled ? 0 : -1}
               onClick={() => onCellClick && onCellClick(x, y)}
               onFocus={() => setActiveCell({ x, y })}
               onKeyDown={(e) => handleCellKeyDown(e, x, y)}
@@ -245,7 +260,7 @@ export function Board({
               }
               style={{ gridColumn: `${x + 2} / ${x + 3}`, gridRow: `${y + 2} / ${y + 3}` }}
             />
-          ))
+          )})
         )}
         {shipOverlays}
         {sinkingOverlay}

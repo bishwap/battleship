@@ -1,5 +1,5 @@
-import { useSettings } from '../contexts/SettingsContext';
-import { usePwa } from '../contexts/PwaContext';
+import { useSettings } from '../hooks/useSettings';
+import { usePwa } from '../hooks/usePwa';
 
 export function SettingsPanel() {
   const { settings, setSound, setHaptics, setReducedMotion } = useSettings();
