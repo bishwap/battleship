@@ -5,7 +5,6 @@ import { feedback } from './lib/feedback';
 import { SHIPS } from './lib/constants';
 import { canPlaceShip, getShipBounds } from './lib/gameLogic';
 import { Board } from './components/Board';
-import { CommanderChat } from './components/CommanderChat';
 import { FleetPanel } from './components/FleetPanel';
 import { GameControls } from './components/GameControls';
 import { StatusPanel } from './components/StatusPanel';
@@ -17,7 +16,9 @@ import { BattleReadyOverlay } from './components/BattleReadyOverlay';
 import { TallyBoard } from './components/TallyBoard';
 import { SettingsPanel } from './components/SettingsPanel';
 import { TutorialOverlay } from './components/TutorialOverlay';
-import { HintOverlay } from './components/HintOverlay';
+import { HintBanner } from './components/HintBanner';
+import { StatusBar } from './components/StatusBar';
+import { NameEntry } from './components/NameEntry';
 
 function App() {
   const {
@@ -38,6 +39,7 @@ function App() {
   const [showBattleOverlay, setShowBattleOverlay] = useState(false);
   const [seenTutorial, setSeenTutorial] = useState(() => !!localStorage.getItem('battleShipz-seen-tutorial'));
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showNameEntry, setShowNameEntry] = useState(() => !localStorage.getItem('battleShipz-name-set'));
   const [fleetZoomed, setFleetZoomed] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const { settings, setSound } = useSettings();
@@ -57,8 +59,6 @@ function App() {
     }
     setSelectedOrientation((prev) => (prev === 'horizontal' ? 'vertical' : 'horizontal'));
   }, [selectedShip, game.playerBoard, rotateShip]);
-
-
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -102,6 +102,7 @@ function App() {
   const enemyLastShot = game.lastShot?.side === 'player' ? game.lastShot : null;
   const playerSinkingShip = game.sinkingShip?.side === 'player' ? game.sinkingShip : null;
   const enemySinkingShip = game.sinkingShip?.side === 'ai' ? game.sinkingShip : null;
+  const lastChatMessage = game.chat.filter((m) => m.type !== 'intro').at(-1);
 
   const unplacedShips = SHIPS.filter(
     (ship) => !game.playerBoard.ships.some((placed) => placed.id === ship.id)
@@ -116,7 +117,6 @@ function App() {
     const cellShipId = game.playerBoard.cells[y]?.[x]?.shipId;
     const ship = selectedShip ? SHIPS.find((s) => s.id === selectedShip) : null;
 
-    // Clicking on the currently selected ship rotates it in place.
     if (selectedShip && cellShipId === selectedShip && ship) {
       const bounds = getShipBounds(game.playerBoard, selectedShip);
       if (bounds) {
@@ -129,7 +129,6 @@ function App() {
       return;
     }
 
-    // Clicking any placed ship selects it so it can be moved or rotated.
     if (cellShipId) {
       const bounds = getShipBounds(game.playerBoard, cellShipId);
       setSelectedShip(cellShipId);
@@ -137,7 +136,6 @@ function App() {
       return;
     }
 
-    // Clicking an empty cell places the selected ship there.
     if (selectedShip && ship) {
       if (canPlaceShip(game.playerBoard.cells, ship, x, y, selectedOrientation, selectedShip)) {
         placeShip(selectedShip, x, y, selectedOrientation);
@@ -176,8 +174,22 @@ function App() {
 
   const handleIntroDone = () => {
     setShowIntro(false);
-    if (!seenTutorial) setShowTutorial(true);
+    if (showNameEntry) {
+      setShowNameEntry(true);
+    } else if (!seenTutorial) {
+      setShowTutorial(true);
+    }
   };
+
+  const handleNameSet = useCallback(
+    (name: string) => {
+      setAdmiralName(name);
+      localStorage.setItem('battleShipz-name-set', '1');
+      setShowNameEntry(false);
+      if (!seenTutorial) setShowTutorial(true);
+    },
+    [setAdmiralName, seenTutorial]
+  );
 
   const handleTutorialDone = () => {
     setSeenTutorial(true);
@@ -201,30 +213,20 @@ function App() {
   }, [game.consecutiveMisses]);
 
   return (
-    <div className="safe-area flex flex-col min-h-screen min-h-[100dvh]">
+    <div className="safe-area flex flex-col min-h-screen min-h-[100dvh] pb-24">
       {showIntro && <Intro onDone={handleIntroDone} />}
+      {showNameEntry && <NameEntry defaultName={game.admiralName} onDone={handleNameSet} />}
 
       <StatusPanel
-        status={game.status}
-        turn={game.turn}
-        gameOver={game.gameOver}
-        winner={game.winner}
         playerName={game.admiralName}
         lastShot={game.lastShot}
+        lastChatMessage={lastChatMessage}
       />
 
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 max-w-[1400px] mx-auto w-full">
         <section className="lg:col-span-8 flex flex-col gap-4 sm:gap-6">
           {game.phase === 'setup' && (
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <label className="text-sm text-muted">Admiral Name</label>
-              <input
-                type="text"
-                value={game.admiralName}
-                onChange={(e) => setAdmiralName(e.target.value)}
-                maxLength={20}
-                className="px-3 py-2 rounded border border-grid bg-ocean-light text-text text-sm focus:border-radar focus:outline-none"
-              />
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <SetupControls
                 onRandomize={handleRandomize}
                 onStartBattle={handleStartBattle}
@@ -279,7 +281,7 @@ function App() {
 
         <aside className="lg:col-span-4 flex flex-col gap-4 h-full">
           {game.phase === 'playing' && (
-            <div className="relative w-full max-w-[200px] mx-auto cursor-zoom-in" title="Click to zoom in on Your Fleet">
+            <div className="relative w-full mx-auto cursor-zoom-in" title="Click to zoom in on Your Fleet">
               <Board
                 board={game.playerBoard}
                 isPlayerBoard
@@ -298,7 +300,6 @@ function App() {
               />
             </div>
           )}
-          {game.phase === 'playing' && <CommanderChat messages={game.chat} />}
           <TallyBoard name={game.admiralName} tally={game.tally} />
           <SettingsPanel onOpenTutorial={() => setShowTutorial(true)} />
           {game.phase === 'playing' && (
@@ -332,8 +333,6 @@ function App() {
 
       {showTutorial && <TutorialOverlay onDone={handleTutorialDone} onSkip={handleTutorialSkip} />}
 
-      {showHint && <HintOverlay onDismiss={handleDismissHint} />}
-
       {fleetZoomed && game.phase === 'playing' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-ocean/90 backdrop-blur-sm cursor-zoom-out"
@@ -342,7 +341,7 @@ function App() {
           aria-label="Zoomed Your Fleet"
           onClick={() => setFleetZoomed(false)}
         >
-          <div className="max-w-md w-full mx-4">
+          <div className="max-w-3xl w-full mx-4 p-2">
             <Board
               board={game.playerBoard}
               isPlayerBoard
@@ -365,6 +364,10 @@ function App() {
           onPlayAgain={handleNewGame}
         />
       )}
+
+      <StatusBar status={game.status}>
+        {showHint && <HintBanner onClose={handleDismissHint} />}
+      </StatusBar>
     </div>
   );
 }
