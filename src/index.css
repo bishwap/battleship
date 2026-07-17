@@ -30,6 +30,12 @@ button,
   touch-action: manipulation;
 }
 
+html,
+body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   margin: 0;
   background: radial-gradient(circle at 50% 0%, var(--ocean-light), var(--ocean));

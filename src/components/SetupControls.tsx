@@ -6,6 +6,7 @@ type SetupControlsProps = {
   canUndo?: boolean;
   canStartBattle?: boolean;
   selectedShip?: string | null;
+  selectedShipName?: string;
 };
 
 export function SetupControls({
@@ -16,6 +17,7 @@ export function SetupControls({
   canUndo,
   canStartBattle = false,
   selectedShip,
+  selectedShipName,
 }: SetupControlsProps) {
   return (
     <div className="flex flex-wrap items-center justify-center gap-3">
@@ -44,7 +46,7 @@ export function SetupControls({
           onClick={onRotate}
           className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg border border-hit/50 bg-hit/10 text-hit-glow hover:bg-hit/20 transition-colors"
         >
-          Rotate Ship
+          Rotate {selectedShipName ?? 'Ship'}
         </button>
       )}
 

@@ -527,7 +527,7 @@ export function useGame() {
     const newTally = { ...game.tally, [key]: game.tally[key] + 1 };
     saveTally(newTally);
     setGame((prev) => ({ ...prev, tally: newTally }));
-    feedback.playSound(game.winner === 'player' ? 'win' : 'lose');
+    void feedback.playSound(game.winner === 'player' ? 'win' : 'lose');
     tallyProcessed.current = game.winner;
   }, [game.gameOver, game.winner, game.tally]);
 
@@ -551,7 +551,7 @@ export function useGame() {
 
   useEffect(() => {
     if (game.gameOver || !game.lastShot) return;
-    feedback.playSound(game.lastShot.result);
+    void feedback.playSound(game.lastShot.result);
     feedback.triggerHaptic(game.lastShot.result);
   }, [game.lastShot, game.gameOver]);
 
@@ -559,7 +559,7 @@ export function useGame() {
     const prev = prevPlacementHistory.current;
     const current = game.placementHistory;
     if (current.join(',') !== prev.join(',')) {
-      feedback.playSound('tap');
+      void feedback.playSound('tap');
       feedback.triggerHaptic('tap');
     }
     prevPlacementHistory.current = current;
