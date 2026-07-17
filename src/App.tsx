@@ -39,7 +39,7 @@ function App() {
   const [showBattleOverlay, setShowBattleOverlay] = useState(false);
   const [seenTutorial, setSeenTutorial] = useState(() => !!localStorage.getItem('battleShipz-seen-tutorial'));
   const [showTutorial, setShowTutorial] = useState(false);
-  const [showNameEntry, setShowNameEntry] = useState(() => !localStorage.getItem('battleShipz-name-set'));
+  const [showNameEntry, setShowNameEntry] = useState(() => !localStorage.getItem('battleshipz-admiral'));
   const [fleetZoomed, setFleetZoomed] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const { settings, setSound } = useSettings();
@@ -174,17 +174,12 @@ function App() {
 
   const handleIntroDone = () => {
     setShowIntro(false);
-    if (showNameEntry) {
-      setShowNameEntry(true);
-    } else if (!seenTutorial) {
-      setShowTutorial(true);
-    }
+    if (!showNameEntry && !seenTutorial) setShowTutorial(true);
   };
 
   const handleNameSet = useCallback(
     (name: string) => {
       setAdmiralName(name);
-      localStorage.setItem('battleShipz-name-set', '1');
       setShowNameEntry(false);
       if (!seenTutorial) setShowTutorial(true);
     },
@@ -213,9 +208,9 @@ function App() {
   }, [game.consecutiveMisses]);
 
   return (
-    <div className="safe-area flex flex-col min-h-screen min-h-[100dvh] pb-24">
+    <div className="safe-area flex flex-col min-h-screen min-h-[100dvh] pb-32">
       {showIntro && <Intro onDone={handleIntroDone} />}
-      {showNameEntry && <NameEntry defaultName={game.admiralName} onDone={handleNameSet} />}
+      {!showIntro && showNameEntry && <NameEntry defaultName={game.admiralName} onDone={handleNameSet} />}
 
       <StatusPanel
         playerName={game.admiralName}
