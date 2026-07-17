@@ -1,8 +1,6 @@
-const CACHE_NAME = 'battleshipz-v2';
+const CACHE_NAME = 'battleshipz-v3';
 const OFFLINE_PAGE = '/battleship/offline.html';
 const APP_SHELL = [
-  '/battleship/',
-  '/battleship/index.html',
   '/battleship/offline.html',
   '/battleship/favicon.svg',
   '/battleship/apple-touch-icon.png',
@@ -38,35 +36,62 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+function isStaticAsset(url) {
+  return /\.(js|css|png|jpg|jpeg|svg|json|webp|woff2?|ttf|otf)$/.test(url.pathname);
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
+  const url = new URL(event.request.url);
 
-      return fetch(event.request)
+  if (event.request.mode === 'navigate' || url.pathname === '/battleship/' || url.pathname === '/battleship/index.html') {
+    event.respondWith(
+      fetch(event.request)
         .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const responseClone = response.clone();
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(event.request, responseClone))
+              .catch((err) => console.error('Service worker cache put failed:', err));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(event.request).then((cached) => cached || caches.match(OFFLINE_PAGE).then((offline) => offline || new Response('Offline')))
+        )
+    );
+    return;
+  }
+
+  if (isStaticAsset(url)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) {
+          fetch(event.request)
+            .then((response) => {
+              if (response && response.status === 200 && response.type === 'basic') {
+                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response));
+              }
+            })
+            .catch(() => {});
+          return cached;
+        }
+
+        return fetch(event.request).then((response) => {
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
-
           const responseClone = response.clone();
           caches
             .open(CACHE_NAME)
             .then((cache) => cache.put(event.request, responseClone))
             .catch((err) => console.error('Service worker cache put failed:', err));
-
           return response;
-        })
-        .catch((err) => {
-          if (event.request.mode === 'navigate') {
-            return caches.match(OFFLINE_PAGE).then((offline) => offline || new Response('Offline'));
-          }
-          throw err;
         });
-    })
-  );
+      })
+    );
+    return;
+  }
 });

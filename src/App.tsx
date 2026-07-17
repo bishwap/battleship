@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { useGame } from './hooks/useGame';
 import { SHIPS } from './lib/constants';
-import { canPlaceShip } from './lib/gameLogic';
+import { canPlaceShip, getShipBounds } from './lib/gameLogic';
 import { Board } from './components/Board';
 import { CommanderChat } from './components/CommanderChat';
 import { FleetPanel } from './components/FleetPanel';
@@ -12,6 +12,7 @@ import { Intro } from './components/Intro';
 import { ResultOverlay } from './components/ResultOverlay';
 import { ShipTray } from './components/ShipTray';
 import { SetupControls } from './components/SetupControls';
+import { BattleReadyOverlay } from './components/BattleReadyOverlay';
 import { TallyBoard } from './components/TallyBoard';
 import { SettingsPanel } from './components/SettingsPanel';
 
@@ -22,7 +23,7 @@ function App() {
     startGame,
     setAdmiralName,
     placeShip,
-    removeShipFromBoard,
+    rotateShip,
     randomizePlacement,
     undoLastPlacement,
     beginBattle,
@@ -30,7 +31,24 @@ function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [selectedShip, setSelectedShip] = useState<string | null>(null);
   const [selectedOrientation, setSelectedOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
+  const [showBattleOverlay, setShowBattleOverlay] = useState(false);
   const { settings, setSound } = useSettings();
+
+  const handleRotateSelectedShip = useCallback(() => {
+    if (!selectedShip) return;
+    const ship = SHIPS.find((s) => s.id === selectedShip);
+    if (!ship) return;
+    const bounds = getShipBounds(game.playerBoard, selectedShip);
+    if (bounds) {
+      const newOrientation = bounds.orientation === 'horizontal' ? 'vertical' : 'horizontal';
+      if (canPlaceShip(game.playerBoard.cells, ship, bounds.x, bounds.y, newOrientation, selectedShip)) {
+        rotateShip(selectedShip);
+        setSelectedOrientation(newOrientation);
+      }
+      return;
+    }
+    setSelectedOrientation((prev) => (prev === 'horizontal' ? 'vertical' : 'horizontal'));
+  }, [selectedShip, game.playerBoard, rotateShip]);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowIntro(false), 2500);
@@ -57,7 +75,11 @@ function App() {
         case 'r':
           if (game.phase === 'setup') {
             e.preventDefault();
-            randomizePlacement();
+            if (selectedShip) {
+              handleRotateSelectedShip();
+            } else {
+              randomizePlacement();
+            }
           }
           break;
         case 'm':
@@ -69,7 +91,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [game.phase, startGame, undoLastPlacement, randomizePlacement, setSound, settings.sound]);
+  }, [game.phase, selectedShip, startGame, undoLastPlacement, randomizePlacement, handleRotateSelectedShip, setSound, settings.sound]);
 
   const playerLastShot = game.lastShot?.side === 'ai' ? game.lastShot : null;
   const enemyLastShot = game.lastShot?.side === 'player' ? game.lastShot : null;
@@ -87,18 +109,32 @@ function App() {
 
   const handleSetupCellClick = (x: number, y: number) => {
     const cellShipId = game.playerBoard.cells[y]?.[x]?.shipId;
-    if (selectedShip && cellShipId === selectedShip) {
-      setSelectedShip(null);
+    const ship = selectedShip ? SHIPS.find((s) => s.id === selectedShip) : null;
+
+    // Clicking on the currently selected ship rotates it in place.
+    if (selectedShip && cellShipId === selectedShip && ship) {
+      const bounds = getShipBounds(game.playerBoard, selectedShip);
+      if (bounds) {
+        const newOrientation = bounds.orientation === 'horizontal' ? 'vertical' : 'horizontal';
+        if (canPlaceShip(game.playerBoard.cells, ship, bounds.x, bounds.y, newOrientation, selectedShip)) {
+          rotateShip(selectedShip);
+          setSelectedOrientation(newOrientation);
+        }
+      }
       return;
     }
+
+    // Clicking any placed ship selects it so it can be moved or rotated.
     if (cellShipId) {
-      removeShipFromBoard(x, y);
-      setSelectedShip(null);
+      const bounds = getShipBounds(game.playerBoard, cellShipId);
+      setSelectedShip(cellShipId);
+      setSelectedOrientation(bounds?.orientation ?? 'horizontal');
       return;
     }
-    if (selectedShip) {
-      const ship = SHIPS.find((s) => s.id === selectedShip);
-      if (ship && canPlaceShip(game.playerBoard.cells, ship, x, y, selectedOrientation)) {
+
+    // Clicking an empty cell places the selected ship there.
+    if (selectedShip && ship) {
+      if (canPlaceShip(game.playerBoard.cells, ship, x, y, selectedOrientation, selectedShip)) {
         placeShip(selectedShip, x, y, selectedOrientation);
         setSelectedShip(null);
       }
@@ -117,6 +153,11 @@ function App() {
 
   const handleStartBattle = () => {
     setSelectedShip(null);
+    setShowBattleOverlay(true);
+  };
+
+  const handleConfirmBattle = () => {
+    setShowBattleOverlay(false);
     beginBattle();
   };
 
@@ -135,6 +176,7 @@ function App() {
         gameOver={game.gameOver}
         winner={game.winner}
         playerName={game.admiralName}
+        lastShot={game.lastShot}
       />
 
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 max-w-[1400px] mx-auto w-full">
@@ -153,8 +195,10 @@ function App() {
                 onRandomize={handleRandomize}
                 onStartBattle={handleStartBattle}
                 onUndo={handleUndo}
+                onRotate={selectedShip ? handleRotateSelectedShip : undefined}
                 canUndo={game.placementHistory.length > 0}
                 canStartBattle={game.playerBoard.ships.length === SHIPS.length}
+                selectedShip={selectedShip}
               />
             </div>
           )}
@@ -191,7 +235,11 @@ function App() {
               board={game.playerBoard}
               isPlayerBoard
               onCellClick={handleSetupCellClick}
-              onCellDrop={(shipId, orientation, x, y) => placeShip(shipId, x, y, orientation)}
+              onCellDrop={(shipId, orientation, x, y) => {
+                placeShip(shipId, x, y, orientation);
+                setSelectedShip(null);
+              }}
+              onSelectShip={handleSelectShip}
               disabled={false}
               title="Your Fleet"
               lastShot={null}
@@ -232,6 +280,14 @@ function App() {
           )}
         </aside>
       </main>
+
+      {showBattleOverlay && (
+        <BattleReadyOverlay
+          playerName={game.admiralName}
+          onConfirm={handleConfirmBattle}
+          onCancel={() => setShowBattleOverlay(false)}
+        />
+      )}
 
       {game.gameOver && game.winner && (
         <ResultOverlay

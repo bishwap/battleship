@@ -12,6 +12,7 @@ import {
   canPlaceShip,
   createEmptyBoard,
   fireAt,
+  getShipBounds,
   isValidTarget,
   placeShipOnBoard,
   placeShips,
@@ -119,13 +120,34 @@ export function useGame() {
     }));
   }, []);
 
+  const rotateShip = useCallback((shipId: string) => {
+    setGame((prev) => {
+      if (prev.phase !== 'setup') return prev;
+      const bounds = getShipBounds(prev.playerBoard, shipId);
+      if (!bounds) return prev;
+      const ship = SHIPS.find((s) => s.id === shipId);
+      if (!ship) return prev;
+      const newOrientation = bounds.orientation === 'horizontal' ? 'vertical' : 'horizontal';
+      if (canPlaceShip(prev.playerBoard.cells, ship, bounds.x, bounds.y, newOrientation, shipId)) {
+        const playerBoard = placeShipOnBoard(prev.playerBoard, ship, bounds.x, bounds.y, newOrientation);
+        const allPlaced = playerBoard.ships.length === SHIPS.length;
+        return {
+          ...prev,
+          playerBoard,
+          status: allPlaced ? 'Fleet ready. Press Start Battle.' : `Place your fleet, ${prev.admiralName}.`,
+        };
+      }
+      return prev;
+    });
+  }, []);
+
   const placeShip = useCallback(
     (shipId: string, x: number, y: number, orientation: 'horizontal' | 'vertical') => {
       setGame((prev) => {
         if (prev.phase !== 'setup') return prev;
         const ship = SHIPS.find((s) => s.id === shipId);
         if (!ship) return prev;
-        if (canPlaceShip(prev.playerBoard.cells, ship, x, y, orientation)) {
+        if (canPlaceShip(prev.playerBoard.cells, ship, x, y, orientation, shipId)) {
           const playerBoard = placeShipOnBoard(prev.playerBoard, ship, x, y, orientation);
           const allPlaced = playerBoard.ships.length === SHIPS.length;
           const history = prev.placementHistory.includes(shipId)
@@ -425,6 +447,7 @@ export function useGame() {
     startGame,
     setAdmiralName,
     placeShip,
+    rotateShip,
     removeShipFromBoard,
     randomizePlacement,
     undoLastPlacement,
