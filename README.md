@@ -47,7 +47,7 @@ The `public/` folder contains:
 
 ## Bugs and fixes
 
-See [BUGS.md](./BUGS.md) for the full list of bugs found and fixed during development.
+See [DEBUGGING.md](./DEBUGGING.md) for the full list of bugs found and fixed during development.
 
 ## License
 
