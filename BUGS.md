@@ -1,4 +1,6 @@
-# Battleship — Bugs Found and Fixed
+# Battleship — Bugs Found and Fixed (archived)
+
+> This file is kept for historical reference. The canonical, up-to-date bug report is [`DEBUGGING.md`](./DEBUGGING.md), which includes all bugs from this file plus every bug fixed in later PRs.
 
 This document lists every bug, error, or unexpected behavior found during the build, test, and play-through of the Battleship game, plus the reason it happened and how it was fixed.
 
