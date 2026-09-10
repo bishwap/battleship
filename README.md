@@ -26,12 +26,37 @@ A public, browser-playable Battleship game against an AI opponent. Built with Re
 - Progressive Web App: installable from the browser with an offline fallback page.
 - Responsive layout for desktop and mobile, including safe-area support for notched devices.
 
+## Raga Studio (music app)
+
+The same site also ships **Raga Studio**, a browser-based Indian music composer for people with no musical training. Switch between BattleShipz and Raga Studio with the tabs at the top of the page (or open `#raga` / `#battleship`).
+
+All sound is synthesized client-side with the Web Audio API — no backend, no samples, no extra dependencies.
+
+### How to use it
+
+1. Pick a **Raga** (Bilawal, Yaman, Bhairav, Kafi, Bhupali, Khamaj). The rows for notes that belong to the raga turn blue; the raga's *vadi* (most important note) is marked.
+2. Choose **Sa (tonic pitch)** — the base note everything else is tuned from — and a **Taal** (Teentaal 16, Keherwa 8, Dadra 6, Rupak 7).
+3. Click grid cells to place notes. Rows are the sargam (Sa, Re, Ga, Ma, Pa, Dha, Ni, Sa'), columns are beats. `✕` marks the *sam*, the first beat of each cycle. Click a note name to hear it on its own.
+4. Press **Play**. The currently playing beat is highlighted, a tanpura-style drone hums Sa and Pa underneath, and a synthesized tabla keeps the taal.
+5. Adjust **Tempo** (40–200 BPM) and the number of **Beats** (4–32) while playing.
+6. **Save** stores your composition in `localStorage`; **Load** restores it, **Reset** starts fresh.
+
+### Where the code lives
+
+- `src/lib/ragas.ts` — sargam swaras, just-intonation ratios, raga and tonic definitions.
+- `src/lib/audio/` — `synth.ts` (plucked note), `drone.ts` (tanpura), `tabla.ts` (taals + percussion), `scheduler.ts` (look-ahead step clock), `context.ts` (shared `AudioContext`).
+- `src/lib/sequencer.ts` — pure composition state (toggle, resize, prune to raga, serialize).
+- `src/contexts/RagaStudioProvider.tsx` + `src/hooks/useRagaStudio.ts` — composition/playback state.
+- `src/components/RagaStudio.tsx`, `SequencerGrid.tsx`, `StudioControls.tsx` — UI.
+- `src/tests/ragas.test.ts`, `src/tests/sequencer.test.ts` — Vitest coverage for the pure logic.
+
 ## Development
 
 ```bash
 npm install
-npm run dev
+npm run dev        # http://localhost:5173/battleship/
 npm run test -- --run
+npm run lint
 npm run build
 ```
 
